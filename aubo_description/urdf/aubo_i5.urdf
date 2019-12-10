@@ -180,11 +180,6 @@
   </joint>
 
   <link name="wrist3_Link">
-    <inertial>
-      <origin xyz="3.92048778449938E-10 0.000175788057281467 -0.0213294490706684" rpy="0 0 0" />
-      <mass value="0.158309554874285" />
-      <inertia ixx="7.31376196034769E-05" ixy="0" ixz="0" iyy="7.19528188876563E-05" iyz="0" izz="0.000108772439051422" />
-    </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
@@ -200,6 +195,14 @@
         <mesh filename="package://aubo_description/meshes/aubo_i5/collision/wrist3_Link.STL" />
       </geometry>
     </collision>
+    <inertial>
+      <origin xyz="3.92048778449938E-10 0.000175788057281467 -0.0213294490706684" rpy="0 0 0" />
+      <mass value="0.158309554874285" />
+      <inertia
+        ixx="7.31376196034769E-05" ixy="0" ixz="0"
+        iyy="7.19528188876563E-05" iyz="0"
+        izz="0.000108772439051422" />
+      </inertial>
   </link>
 
   <joint name="wrist3_joint" type="revolute">

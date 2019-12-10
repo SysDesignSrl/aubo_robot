@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="aubo_i5">
-  <xacro:include filename="$(find aubo_description)/urdf/aubo_i5.urdf.xacro" />
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="aubo_i3">
+  <xacro:include filename="$(find aubo_description)/urdf/aubo_i3.urdf.xacro" />
   <xacro:include filename="$(find aubo_description)/urdf/common.gazebo.xacro" />
 
 
@@ -13,6 +13,8 @@
   </joint>
 
   <!-- Arm -->
-  <xacro:aubo_i5 prefix="" joint_limited="false"/>
+  <xacro:aubo_i3 prefix=""/>
+  <xacro:aubo_arm_transmission prefix=""/>
+  <xacro:aubo_arm_gazebo prefix=""/>
 
 </robot>
