@@ -38,7 +38,7 @@ using namespace aubo_driver;
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "aubo_driver");
-    ros::NodeHandle n;
+    ros::NodeHandle node("~");
 
     int num = 0;
     ros::param::get("/aubo_driver/external_axis_number", num);
@@ -51,14 +51,14 @@ int main(int argc, char **argv)
     }
 
     ROS_INFO("aubo_driver/external_axis_number: %s", std::to_string(num).c_str());
-    AuboDriver robot_driver(num);
+    AuboDriver robot_driver(node, num);
     robot_driver.run();
 
     ros::AsyncSpinner spinner(6);
     spinner.start();
 
     ros::Rate loop_rate(robot_driver.UPDATE_RATE_);
-    while(ros::ok())
+    while (ros::ok())
     {
         robot_driver.updateControlStatus();
         loop_rate.sleep();
@@ -67,5 +67,3 @@ int main(int argc, char **argv)
     ROS_WARN("Exiting robot_driver");
     return(0);
 }
-
-

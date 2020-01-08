@@ -33,10 +33,25 @@
 
 namespace aubo_driver {
 
-std::string AuboDriver::joint_name_[ARM_DOF] = {"shoulder_joint","upperArm_joint","foreArm_joint","wrist1_joint","wrist2_joint","wrist3_joint"};
+std::string AuboDriver::joint_name_[ARM_DOF] = { "shoulder_joint", "upperArm_joint", "foreArm_joint", "wrist1_joint", "wrist2_joint", "wrist3_joint" };
 
-AuboDriver::AuboDriver(int num = 0):buffer_size_(400),io_flag_delay_(0.02),data_recieved_(false),data_count_(0),real_robot_exist_(false),emergency_stopped_(false),protective_stopped_(false),normal_stopped_(false),
-    controller_connected_flag_(false),start_move_(false),control_mode_ (aubo_driver::SendTargetGoal),rib_buffer_size_(0),jti(ARM_DOF,1.0/200),jto(ARM_DOF),collision_class_(6)
+AuboDriver::AuboDriver(const ros::NodeHandle &nh = ros::NodeHandle(), int num = 0) :
+  nh_(nh),
+  buffer_size_(400),
+  io_flag_delay_(0.02),
+  data_recieved_(false),
+  data_count_(0),
+  real_robot_exist_(false),
+  emergency_stopped_(false),
+  protective_stopped_(false),
+  normal_stopped_(false),
+  controller_connected_flag_(false),
+  start_move_(false),
+  control_mode_(aubo_driver::SendTargetGoal),
+  rib_buffer_size_(0),
+  jti(ARM_DOF, 1.0/200),
+  jto(ARM_DOF),
+  collision_class_(6)
 {
     axis_number_ = 6 + num;
     /** initialize the parameters **/
@@ -66,14 +81,14 @@ AuboDriver::AuboDriver(int num = 0):buffer_size_(400),io_flag_delay_(0.02),data_
     /** publish messages **/
     joint_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 300);
     joint_feedback_pub_ = nh_.advertise<control_msgs::FollowJointTrajectoryFeedback>("feedback_states", 100);
-    joint_target_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/aubo_driver/real_pose", 50);
+    joint_target_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("real_pose", 50);
     robot_status_pub_ = nh_.advertise<industrial_msgs::RobotStatus>("robot_status", 100);
-    io_pub_ = nh_.advertise<aubo_msgs::IOState>("/aubo_driver/io_states", 10);
-    rib_pub_ = nh_.advertise<std_msgs::Int32MultiArray>("/aubo_driver/rib_status", 100);
-    cancle_trajectory_pub_ = nh_.advertise<std_msgs::UInt8>("aubo_driver/cancel_trajectory",100);
-    io_srv_ = nh_.advertiseService("/aubo_driver/set_io",&AuboDriver::setIO, this);
-    ik_srv_ = nh_.advertiseService("/aubo_driver/get_ik",&AuboDriver::getIK, this);
-    fk_srv_ = nh_.advertiseService("/aubo_driver/get_fk",&AuboDriver::getFK, this);
+    io_pub_ = nh_.advertise<aubo_msgs::IOState>("io_states", 10);
+    rib_pub_ = nh_.advertise<std_msgs::Int32MultiArray>("rib_status", 100);
+    cancle_trajectory_pub_ = nh_.advertise<std_msgs::UInt8>("cancel_trajectory",100);
+    io_srv_ = nh_.advertiseService("set_io",&AuboDriver::setIO, this);
+    ik_srv_ = nh_.advertiseService("get_ik",&AuboDriver::getIK, this);
+    fk_srv_ = nh_.advertiseService("get_fk",&AuboDriver::getFK, this);
 
     /** subscribe topics **/
     trajectory_execution_subs_ = nh_.subscribe("trajectory_execution_event", 10, &AuboDriver::trajectoryExecutionCallback,this);
@@ -81,7 +96,7 @@ AuboDriver::AuboDriver(int num = 0):buffer_size_(400),io_flag_delay_(0.02),data_
     moveit_controller_subs_ = nh_.subscribe("moveItController_cmd", 2000, &AuboDriver::moveItPosCallback,this);
     teach_subs_ = nh_.subscribe("teach_cmd", 10, &AuboDriver::teachCallback,this);
     moveAPI_subs_ = nh_.subscribe("moveAPI_cmd", 10, &AuboDriver::AuboAPICallback, this);
-    controller_switch_sub_ = nh_.subscribe("/aubo_driver/controller_switch", 10, &AuboDriver::controllerSwitchCallback, this);
+    controller_switch_sub_ = nh_.subscribe("controller_switch", 10, &AuboDriver::controllerSwitchCallback, this);
 }
 
 AuboDriver::~AuboDriver()
@@ -96,11 +111,11 @@ AuboDriver::~AuboDriver()
 
 void AuboDriver::timerCallback(const ros::TimerEvent& e)
 {
-    if(controller_connected_flag_)
+    if (controller_connected_flag_)
     {
         /** Query the states of robot joints **/
         int ret = robot_receive_service_.robotServiceGetCurrentWaypointInfo(rs.wayPoint_);      /** this method upates the joint states more quickly **/
-        if(ret == aubo_robot_namespace::InterfaceCallSuccCode)
+        if (ret == aubo_robot_namespace::InterfaceCallSuccCode)
         {
             double joints[ARM_DOF];
             for(int i = 0; i < 6; i++)
@@ -113,7 +128,7 @@ void AuboDriver::timerCallback(const ros::TimerEvent& e)
 
 //            robot_receive_service_.robotServiceGetRobotCurrentState(rs.state_);            // this is controlled by Robot Controller
 //            robot_receive_service_.getErrDescByCode(rs.code_);
-            if(real_robot_exist_)
+            if (real_robot_exist_)
             {
                 // publish robot_status information to the controller action server.
                 robot_status_.mode.val            = (int8)rs.robot_diagnosis_info_.orpeStatus;
@@ -125,7 +140,7 @@ void AuboDriver::timerCallback(const ros::TimerEvent& e)
                 robot_status_.error_code          = (int32)rs.robot_diagnosis_info_.singularityOverSpeedAlarm;
             }
         }
-        else if(ret == aubo_robot_namespace::ErrCode_SocketDisconnect)
+        else if (ret == aubo_robot_namespace::ErrCode_SocketDisconnect)
         {
             /** Here we check the connection to satisfy the ROS-I specification **/
             /** Try to connect with the robot again **/
@@ -260,7 +275,7 @@ bool AuboDriver::setRobotJointsByMoveIt()
     {
         PlanningState ps = buf_queue_.front();
         buf_queue_.pop();
-     
+
 
         if(controller_connected_flag_)      // actually no need this judgment
         {
@@ -599,16 +614,16 @@ void AuboDriver::run()
             {
                 robot_joints.data[i] = current_joints_[i];
             }
-            /** If the driver node launched after the robot_simulator node, this will initialize the joint_positions **/
+            /** If the driver nh_ launched after the robot_simulator nh_, this will initialize the joint_positions **/
             joint_target_pub_.publish(robot_joints);
-             /** If the driver node launched after the robot_simulator node, this will initialize the joint_positions **/
+             /** If the driver nh_ launched after the robot_simulator nh_, this will initialize the joint_positions **/
             ros::param::set("initial_joint_state", joints);
         }
     }
 
     ros::param::set("/aubo_driver/robot_connected","1");
 
-    //communication Timer between ros node and real robot controller.
+    //communication Timer between ros nh_ and real robot controller.
     timer_ = nh_.createTimer(ros::Duration(1.0 / TIMER_SPAN_), &AuboDriver::timerCallback, this);
     timer_.start();
 
@@ -833,4 +848,3 @@ bool AuboDriver::getIK(aubo_msgs::GetIKRequest& req, aubo_msgs::GetIKResponse& r
 }
 
 }
-

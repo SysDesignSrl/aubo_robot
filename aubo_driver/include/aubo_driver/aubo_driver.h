@@ -88,7 +88,7 @@ namespace aubo_driver
     class AuboDriver
     {
         public:
-            AuboDriver(int num);
+            AuboDriver(const ros::NodeHandle &nh, int num);
             ~AuboDriver();
             bool roadPointCompare(double *point1, double *point2);
 

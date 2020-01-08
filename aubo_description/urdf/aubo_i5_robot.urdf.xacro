@@ -3,7 +3,7 @@
   <xacro:include filename="$(find aubo_description)/urdf/aubo_i5.urdf.xacro" />
   <xacro:include filename="$(find aubo_description)/urdf/common.gazebo.xacro" />
 
-
+  <!-- World -->
   <link name="world"/>
 
   <joint name="world_joint" type="fixed">
@@ -13,6 +13,6 @@
   </joint>
 
   <!-- Arm -->
-  <xacro:aubo_i5 prefix="" joint_limited="false"/>
+  <xacro:aubo_i5 prefix=""/>
 
 </robot>

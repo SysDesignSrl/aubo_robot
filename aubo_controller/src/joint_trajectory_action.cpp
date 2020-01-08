@@ -29,24 +29,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <map>
 #include "joint_trajectory_action.h"
 #include "utils.h"
 #include "utils_.h"
 #include "param_utils.h"
 #include "utils.h"
-#include <map>
 
-namespace industrial_robot_client
-{
-namespace joint_trajectory_action
-{
+namespace industrial_robot_client {
+namespace joint_trajectory_action {
+
 const double JointTrajectoryAction::WATCHDOG_PERIOD_ = 1.0;
 const double JointTrajectoryAction::DEFAULT_GOAL_THRESHOLD_ = 0.002;
 
+
 JointTrajectoryAction::JointTrajectoryAction(std::string controller_name) :
-    action_server_(node_, controller_name, boost::bind(&JointTrajectoryAction::goalCB, this, _1),
-                   boost::bind(&JointTrajectoryAction::cancelCB, this, _1), false), has_active_goal_(false),
-                       controller_alive_(false), has_moved_once_(false)
+  action_server_(node_, controller_name, boost::bind(&JointTrajectoryAction::goalCB, this, _1), boost::bind(&JointTrajectoryAction::cancelCB, this, _1), false),
+  has_active_goal_(false),
+  controller_alive_(false),
+  has_moved_once_(false)
 {
   ros::NodeHandle pn("~");
 
@@ -70,9 +71,9 @@ JointTrajectoryAction::JointTrajectoryAction(std::string controller_name) :
   action_server_.start();
 }
 
-JointTrajectoryAction::~JointTrajectoryAction()
-{
-}
+
+JointTrajectoryAction::~JointTrajectoryAction() { }
+
 
 void JointTrajectoryAction::trajectoryExecutionCallback(const std_msgs::String::ConstPtr &msg)
 {
@@ -85,6 +86,7 @@ void JointTrajectoryAction::trajectoryExecutionCallback(const std_msgs::String::
         has_active_goal_ = false;
     }
 }
+
 
 void JointTrajectoryAction::robotStatusCB(const industrial_msgs::RobotStatusConstPtr &msg)
 {
@@ -109,6 +111,7 @@ void JointTrajectoryAction::robotStatusCB(const industrial_msgs::RobotStatusCons
       }
   }
 }
+
 
 void JointTrajectoryAction::watchdog(const ros::TimerEvent &e)
 {
@@ -136,6 +139,7 @@ void JointTrajectoryAction::watchdog(const ros::TimerEvent &e)
     abortGoal();
   }
 }
+
 
 void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle & gh)
 {
@@ -210,6 +214,7 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle & gh)
   }
 }
 
+
 void JointTrajectoryAction::cancelCB(JointTractoryActionServer::GoalHandle & gh)
 {
 
@@ -230,6 +235,7 @@ void JointTrajectoryAction::cancelCB(JointTractoryActionServer::GoalHandle & gh)
     ROS_WARN("Active goal and goal cancel do not match, ignoring cancel request");
   }
 }
+
 
 void JointTrajectoryAction::controllerStateCB(const control_msgs::FollowJointTrajectoryFeedbackConstPtr &msg)
 {
@@ -303,6 +309,7 @@ void JointTrajectoryAction::controllerStateCB(const control_msgs::FollowJointTra
   }
 }
 
+
 void JointTrajectoryAction::abortGoal()
 {
   // Stops the controller.
@@ -313,6 +320,7 @@ void JointTrajectoryAction::abortGoal()
   active_goal_.setAborted();
   has_active_goal_ = false;
 }
+
 
 bool mapInsert(const std::string & key, double value, std::map<std::string, double> & mappings)
 {
@@ -369,6 +377,7 @@ bool toMap(const std::vector<std::string> & keys, const std::vector<double> & va
   return rtn;
 }
 
+
 bool isWithinRange(const std::vector<std::string> & keys, const std::map<std::string, double> & lhs,
                    const std::map<std::string, double> & rhs, double full_range)
 {
@@ -424,6 +433,7 @@ bool isWithinRange(const std::vector<std::string> & lhs_keys, const std::vector<
   return rtn;
 }
 
+
 bool JointTrajectoryAction::withinGoalConstraints(const control_msgs::FollowJointTrajectoryFeedbackConstPtr &msg,
                                                   const trajectory_msgs::JointTrajectory & traj)
 {
@@ -452,8 +462,10 @@ bool JointTrajectoryAction::withinGoalConstraints(const control_msgs::FollowJoin
 //            traj.points[last_point].positions[4],traj.points[last_point].positions[5],traj.points[last_point].positions[6]);
 
     if (industrial_robot_client::utils::isWithinRange(last_trajectory_state_->joint_names,
-                                                      last_trajectory_state_->actual.positions, traj.joint_names,
-                                                      traj.points[last_point].positions, goal_threshold_))
+                                                      last_trajectory_state_->actual.positions,
+                                                      traj.joint_names,
+                                                      traj.points[last_point].positions,
+                                                      goal_threshold_))
     {
       rtn = true;
     }
@@ -471,34 +483,33 @@ bool JointTrajectoryAction::withinGoalConstraints(const control_msgs::FollowJoin
 
 /** This node should be loaded after the robot description**/
 using industrial_robot_client::joint_trajectory_action::JointTrajectoryAction;
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
   // initialize node
   ros::init(argc, argv, "aubo_joint_follow_action");
 
-  std::string robot_name, controller_name;
-  ros::param::get("/robot_name", robot_name);
-  while(robot_name == "")
-  {
-    sleep(1);
-    ROS_INFO("Waiting for the robot description to start up!");
-  }
-  if(robot_name == "aubo_i5")
-      controller_name = "aubo_i5_controller/follow_joint_trajectory";
-  else if(robot_name == "aubo_i3")
-          controller_name = "aubo_i3_controller/follow_joint_trajectory";
-  else if(robot_name == "aubo_i7")
-          controller_name = "aubo_i7_controller/follow_joint_trajectory";
-  else if(robot_name == "aubo_i10")
-          controller_name = "aubo_i10_controller/follow_joint_trajectory";
-  else if(robot_name == "aubo_i5l")
-          controller_name = "aubo_i5l_controller/follow_joint_trajectory";
+  // std::string robot_name, controller_name;
+  // ros::param::get("/robot_name", robot_name);
+  // while(robot_name == "")
+  // {
+  //   sleep(1);
+  //   ROS_INFO("Waiting for the robot description to start up!");
+  // }
+  // if(robot_name == "aubo_i5")
+  //     controller_name = "aubo_i5_controller/follow_joint_trajectory";
+  // else if(robot_name == "aubo_i3")
+  //         controller_name = "aubo_i3_controller/follow_joint_trajectory";
+  // else if(robot_name == "aubo_i7")
+  //         controller_name = "aubo_i7_controller/follow_joint_trajectory";
+  // else if(robot_name == "aubo_i10")
+  //         controller_name = "aubo_i10_controller/follow_joint_trajectory";
+  // else if(robot_name == "aubo_i5l")
+  //         controller_name = "aubo_i5l_controller/follow_joint_trajectory";
+
+  std::string controller_name = "aubo_controller/follow_joint_trajectory";
 
   JointTrajectoryAction action(controller_name);
   action.run();
 
   return 0;
 }
-
-
-

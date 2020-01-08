@@ -3,7 +3,7 @@
   <xacro:include filename="$(find aubo_description)/urdf/aubo_i3.urdf.xacro" />
   <xacro:include filename="$(find aubo_description)/urdf/common.gazebo.xacro" />
 
-
+  <!-- World -->
   <link name="world"/>
 
   <joint name="world_joint" type="fixed">

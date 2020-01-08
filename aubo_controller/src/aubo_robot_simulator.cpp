@@ -32,7 +32,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <time.h>
-#include <string.h>
+#include <string>
 #include <vector>
 #include <mutex>
 #include <queue>
@@ -62,8 +62,7 @@
 #define ARM_DOF 8
 namespace aubo_controller {
 
-class MotionControllerSimulator
-{
+class MotionControllerSimulator {
 public:
     int rib_buffer_size_;
     bool controller_connected_flag_;
@@ -89,18 +88,19 @@ protected:
     std::thread* motion_thread_;
 
 public:
-    MotionControllerSimulator(int num_joints, double update_rate, std::string *jointnames)
-    {
+    MotionControllerSimulator(int num_joints, double update_rate, std::vector<std::string> joint_names, const ros::NodeHandle &nh = ros::NodeHandle()) :
+      nh_(nh)
+      {  
         //Motion loop update rate (higher update rates result in smoother simulated motion)
         update_rate_ = update_rate;
         ROS_INFO("Setting motion update rate (hz): %f", update_rate_);
 
-        for(int i = 0; i < ARM_DOF; i++)
-            joint_names_[i] = jointnames[i];
+        for (int i = 0; i < ARM_DOF; i++)
+            joint_names_[i] = joint_names[i];
 
 //        Initialize motion buffer (contains joint position lists)
 //        motion_buffer_.
-        std::string def_joint_names[] = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
+        std::vector<std::string> def_joint_names = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
 //        joint_names_ = ros::param::get("controller_joint_names",def_joint_names);
         double joint_state[num_joints];
 //        initial_joint_state_ = ros::param::get("initial_joint_state", joint_state);
@@ -117,7 +117,6 @@ public:
         update_joint_state_subs_ = nh_.subscribe("real_pose", 50, &MotionControllerSimulator::updateJointStateCallback, this);
 
         motion_thread_ = new std::thread(boost::bind(&MotionControllerSimulator::motionWorker, this));
-
     }
 
     void updateJointStateCallback(const std_msgs::Float32MultiArray::ConstPtr &msg)
@@ -290,9 +289,6 @@ public:
         mutex_.unlock();
 
     }
-
-private:
-
 };
 
 
@@ -308,10 +304,7 @@ private:
  * Joint streaming
  * All services
 */
-class AuboRobotSimulatorNode
-{
-public:
-
+class AuboRobotSimulatorNode {
 protected:
     const int JOINT_STATE_PUB_RATE = 50;
     ros::NodeHandle nh_;
@@ -472,13 +465,11 @@ public:
             ROS_DEBUG("Unexpected exception while parsing the aubo driver message!");
         }
     }
-
-private:
-
 };
+
 }
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
     ros::init(argc, argv, "aubo_simulator_controller");
     ros::NodeHandle nh;
@@ -488,5 +479,5 @@ int main(int argc, char **argv)
 
     ros::waitForShutdown();
 
-    exit(0);
+    return 0;
 }
