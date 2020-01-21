@@ -1,0 +1,10 @@
+aubo:
+  hardware_interface:
+     loop_hz: 10
+     joints:
+       - shoulder_joint
+       - upperarm_joint
+       - forearm_joint
+       - wrist1_joint
+       - wrist2_joint
+       - wrist3_joint
