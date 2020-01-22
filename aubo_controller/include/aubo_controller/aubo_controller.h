@@ -29,27 +29,33 @@ private:
 
   ros::Subscriber joint_states_sub;
 
-  ros::Publisher joint_trajectory_pub;
-
-  actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> follow_joint_trajectory_act;
+  actionlib::SimpleActionClient<control_msgs::JointTrajectoryAction> joint_trajectory_acli;
+  actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> follow_joint_trajectory_asrv;
 
 
   sensor_msgs::JointState joint_state;
 
 public:
 
-  AuboController(const ros::NodeHandle &node = ros::NodeHandle()) :
-    node(node),
-    follow_joint_trajectory_act(node, "follow_joint_trajectory", boost::bind(&aubo::AuboController::goal_callback, this, _1), false) {
+  AuboController(const ros::NodeHandle &nh = ros::NodeHandle()) :
+    node(nh),
+    joint_trajectory_acli(node, "/aubo_driver/joint_trajectory"),
+    follow_joint_trajectory_asrv(node, "follow_joint_trajectory", boost::bind(&aubo::AuboController::goal_callback, this, _1), false) {
 
     start();
   }
 
 
   void start() {
+
     joint_states_sub = node.subscribe("/aubo_driver/joint_states", 10, &aubo::AuboController::joint_states_callback, this);
-    joint_trajectory_pub = node.advertise<trajectory_msgs::JointTrajectory>("/aubo_driver/joint_trajectory", 10);
-    follow_joint_trajectory_act.start();
+
+    // wait aubo_driver action server
+    while (ros::ok() && !joint_trajectory_acli.waitForServer(ros::Duration(5.0))) {
+      ROS_INFO_THROTTLE(5.0, "Waiting for action server: '%s'...", "/aubo_driver/joint_trajectory");
+    }
+
+    follow_joint_trajectory_asrv.start();
   }
 
 
@@ -63,7 +69,9 @@ public:
   goal_callback(const control_msgs::FollowJointTrajectoryGoal::ConstPtr &goal) {
 
     //
-    joint_trajectory_pub.publish(goal->trajectory);
+    control_msgs::JointTrajectoryGoal joint_trajectory_goal;
+    joint_trajectory_goal.trajectory = goal->trajectory;
+    joint_trajectory_acli.sendGoal(joint_trajectory_goal);
 
     //
     auto is_completed = [&goal] (sensor_msgs::JointState joint_state) {
@@ -100,12 +108,12 @@ public:
     control_msgs::FollowJointTrajectoryFeedback feedback;
     do {
 
-    } while (!is_completed(joint_state) && follow_joint_trajectory_act.isActive());
+    } while (!is_completed(joint_state) && follow_joint_trajectory_asrv.isActive());
 
     //
     control_msgs::FollowJointTrajectoryResult result;
     result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
-    follow_joint_trajectory_act.setSucceeded(result);
+    follow_joint_trajectory_asrv.setSucceeded(result);
   }
 
 };

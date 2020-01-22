@@ -7,16 +7,20 @@
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// actionlib
+#include <actionlib/server/simple_action_server.h>
 // sensor_msgs
 #include <sensor_msgs/JointState.h>
 // trajectory_msgs
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
+// control_msgs
+#include <control_msgs/JointTrajectoryAction.h>
+// aubo_driver
+#include "aubo_driver/error_codes.h"
 // AUBO SDK
 #include "lib/AuboRobotMetaType.h"
 #include "lib/serviceinterface.h"
-//
-#include "aubo_driver/error_codes.h"
 
 
 namespace aubo {
@@ -26,6 +30,7 @@ private:
   ros::NodeHandle node;
   std::vector<std::string> joint_names;
 
+  actionlib::SimpleActionServer<control_msgs::JointTrajectoryAction> joint_trajectory_act;
 
   ros::ServiceServer login_srv;
   ros::ServiceServer logout_srv;
@@ -47,7 +52,9 @@ private:
 
 public:
 
-  AuboRobot(const ros::NodeHandle &node = ros::NodeHandle()) : node(node) { }
+  AuboRobot(const ros::NodeHandle &node = ros::NodeHandle()) :
+    node(node),
+    joint_trajectory_act(node, "joint_trajectory", boost::bind(&aubo::AuboRobot::move_trajectory, this, _1), false) { }
 
 
 /* */
@@ -63,15 +70,15 @@ public:
     // init provided services
     login_srv = node.advertiseService("login", &aubo::AuboRobot::login, this);
     logout_srv = node.advertiseService("logout", &aubo::AuboRobot::logout, this);
-
     robot_startup_srv = node.advertiseService("robot_startup", &aubo::AuboRobot::robot_startup, this);
     robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo::AuboRobot::robot_shutdown, this);
-
     init_profile_srv = node.advertiseService("init_motion_profile", &aubo::AuboRobot::init_profile, this);
-
 
     // init published topics
     joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 100);
+
+    // start action server
+    joint_trajectory_act.start();
 
     // error_code = service_interface.robotServiceSetRealTimeRoadPointPush(true);
     // if (error_code != 0) {
@@ -257,15 +264,15 @@ public:
 
 
 /* */
-  bool
-  move_trajectory(const trajectory_msgs::JointTrajectory &trajectory) {
+  void
+  move_trajectory(const control_msgs::JointTrajectoryGoal::ConstPtr &goal) {
     int error_code;
 
     // clear waypoints
     service_interface.robotServiceClearGlobalWayPointVector();
 
     // add waypoints
-    for (const trajectory_msgs::JointTrajectoryPoint &trajectory_point : trajectory.points) {
+    for (const trajectory_msgs::JointTrajectoryPoint &trajectory_point : goal->trajectory.points) {
       double jointAngle[aubo_robot_namespace::ARM_DOF];
       std::copy(trajectory_point.positions.cbegin(), trajectory_point.positions.cend(), jointAngle);
 
@@ -273,7 +280,7 @@ public:
       if (error_code != 0) {
         ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
         ROS_ERROR("Failed to add robot waypoint.");
-        return false;
+        joint_trajectory_act.setAborted();
       }
     }
 
@@ -282,10 +289,11 @@ public:
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
       ROS_ERROR("Failed start executing trajectory.");
-      return false;
+      joint_trajectory_act.setAborted();
     }
 
     ROS_INFO("Start executing trajectory...");
+    joint_trajectory_act.setSucceeded();
   }
 
 
