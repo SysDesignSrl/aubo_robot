@@ -1,6 +1,6 @@
 <launch>
 
-  <node name="aubo_controller" pkg="aubo_driver" type="aubo_driver" output="screen">
+  <node name="aubo_driver" pkg="aubo_driver" type="aubo_driver" output="screen">
     <rosparam ns="tcp" command="load" file="$(find aubo_driver)/config/tcp.yaml" />
     <rosparam ns="login" command="load" file="$(find aubo_driver)/config/login.yaml" />
     <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml" />

@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="aubo_controller" pkg="aubo_controller" type="aubo_controller" output="screen">
+
+  </node>
+
+</launch>
