@@ -1,6 +1,7 @@
 #ifndef AUBO_AUBO_CONTROLLER_H
 #define AUBO_AUBO_CONTROLLER_H
 // STL
+#include <sstream>
 #include <string>
 #include <vector>
 #include <iterator>
@@ -73,47 +74,78 @@ public:
     joint_trajectory_goal.trajectory = goal->trajectory;
     joint_trajectory_acli.sendGoal(joint_trajectory_goal);
 
-    //
-    auto is_completed = [&goal] (sensor_msgs::JointState joint_state) {
+    auto start_time = ros::Time::now();
+    for (const auto &joint_trajectory_pt : goal->trajectory.points) {
 
-      // get last trajectory point
-      auto it = goal->trajectory.points.crend();
-      trajectory_msgs::JointTrajectoryPoint last_trajectory_point = *(it++);
+      //
+      joint_trajectory_pt.time_from_start.sleep();
+      ros::Time trajectory_time = start_time + joint_trajectory_pt.time_from_start;
 
-      std::vector<double> jpos_goal = last_trajectory_point.positions;
-      std::vector<double> jvel_goal = last_trajectory_point.velocities;
+      ROS_DEBUG("joint_state stamp: %.3fs", joint_state.header.stamp.toSec());
+      ROS_DEBUG("trajectory_time: %.3fs", trajectory_time.toSec());
 
-      std::vector<double> jpos_curr = joint_state.position;
-      std::vector<double> jvel_curr = joint_state.velocity;
 
-      for (int i=0; i < joint_state.name.size(); i++) {
-
-        if (joint_state.name[i] != goal->goal_tolerance[i].name) {
-          ROS_ERROR("joint name mismatch!");
-        }
-
-        double jpos_err = jpos_goal[i] - jpos_curr[i];
-        double jvel_err = jvel_goal[i] - jvel_curr[i];
-
-        if (abs(jpos_err) > goal->goal_tolerance[i].position)
-          return false;
-        if (abs(jvel_err) > goal->goal_tolerance[i].velocity)
-          return false;
+      std::stringstream desired_stream("[");
+      for (int i=0; i < joint_trajectory_pt.positions.size(); i++) {
+        if (i < joint_trajectory_pt.positions.size() -1)
+          desired_stream << joint_trajectory_pt.positions[i] << ", ";
+        else
+          desired_stream << joint_trajectory_pt.positions[i] << " ]";
       }
 
-      return true;
-    };
+      std::stringstream actual_stream("[");
+      for (int i=0; i < joint_state.position.size(); i++) {
+        if (i < joint_state.name.size() -1)
+          actual_stream << joint_state.position[i] << ", ";
+        else
+          actual_stream << joint_state.position[i] << " ]";
+      }
 
-    // publish feedback
-    control_msgs::FollowJointTrajectoryFeedback feedback;
-    do {
+      ROS_DEBUG_STREAM("desired: " << desired_stream.str());
+      ROS_DEBUG_STREAM("actual: " << actual_stream.str());
+    }
 
-    } while (!is_completed(joint_state) && follow_joint_trajectory_asrv.isActive());
-
+    // //
+    // auto is_completed = [&goal] (sensor_msgs::JointState joint_state) {
     //
-    control_msgs::FollowJointTrajectoryResult result;
-    result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
-    follow_joint_trajectory_asrv.setSucceeded(result);
+    //   // get last trajectory point
+    //   auto it = goal->trajectory.points.crend();
+    //   trajectory_msgs::JointTrajectoryPoint last_trajectory_point = *(it++);
+    //
+    //   std::vector<double> jpos_goal = last_trajectory_point.positions;
+    //   std::vector<double> jvel_goal = last_trajectory_point.velocities;
+    //
+    //   std::vector<double> jpos_curr = joint_state.position;
+    //   std::vector<double> jvel_curr = joint_state.velocity;
+    //
+    //   for (int i=0; i < joint_state.name.size(); i++) {
+    //
+    //     if (joint_state.name[i] != goal->goal_tolerance[i].name) {
+    //       ROS_ERROR("joint name mismatch!");
+    //     }
+    //
+    //     double jpos_err = jpos_goal[i] - jpos_curr[i];
+    //     double jvel_err = jvel_goal[i] - jvel_curr[i];
+    //
+    //     if (abs(jpos_err) > goal->goal_tolerance[i].position)
+    //       return false;
+    //     if (abs(jvel_err) > goal->goal_tolerance[i].velocity)
+    //       return false;
+    //   }
+    //
+    //   return true;
+    // };
+    //
+    // // publish feedback
+    // control_msgs::FollowJointTrajectoryFeedback feedback;
+    // do {
+    //
+    // } while (!is_completed(joint_state) && follow_joint_trajectory_asrv.isActive());
+    //
+    // //
+    // control_msgs::FollowJointTrajectoryResult result;
+    // result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+    // follow_joint_trajectory_asrv.setSucceeded(result);
   }
 
 };

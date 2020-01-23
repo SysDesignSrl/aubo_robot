@@ -1,4 +1,6 @@
 <launch>
+  <env name="ROSCONSOLE_CONFIG_FILE"
+       value="$(find aubo_driver)/rosconsole.conf"/>
 
   <node name="aubo_driver" pkg="aubo_driver" type="aubo_driver" output="screen">
     <rosparam ns="tcp" command="load" file="$(find aubo_driver)/config/tcp.yaml" />
