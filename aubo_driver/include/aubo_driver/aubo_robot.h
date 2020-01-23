@@ -45,19 +45,10 @@ private:
   ros::ServiceServer pause_movement_srv;
   ros::ServiceServer resume_movement_srv;
 
-
   ros::Publisher joint_state_pub;
 
   ServiceInterface service_interface;
   double blend_radius = 0.03;
-
-
-  static void
-  event_info_callback(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *arg) {
-
-    std::stringstream ss;
-    ROS_INFO("Event Code: %d, %s", eventInfo->eventCode, eventInfo->eventContent.c_str());
-  }
 
 
 public:
@@ -108,9 +99,9 @@ public:
   }
 
 
-/* Establishing network connection with the manipulator sever */
-  bool
-  login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+  /*
+   * Establishing network connection with the manipulator sever */
+  bool login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
     int error_code;
 
     auto hostname = node.param<std::string>("tcp/hostname", "localhost");
@@ -138,9 +129,9 @@ public:
   }
 
 
-/* Disconnecting from the manipulator server */
-  bool
-  logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+  /*
+   * Disconnecting from the manipulator server */
+  bool logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
     int error_code;
 
     error_code = service_interface.robotServiceLogout();
@@ -166,6 +157,7 @@ public:
  * it will return immediately after calling function, the result will be notified by event.
  * When it is set to block mode, return value represents whether the interface
  * has been called successfully. */
+
   bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
     int error_code;
 
@@ -389,32 +381,53 @@ public:
   }
 
 
+/* The manipulator moves to the target position through the linear movement
+ * (Move Line), the target position is described by the angle of each joint.
+ * The maximum linear velocity and the maximum linear acceleration should be set
+ * before calling it, and the offset attribute should be set if the offset is used.
+ * The input has two option, one is the waypoint, or directly gives the angle of
+ * each joint. */
+
+  bool move_line(const std::vector<double> &joint_pos) {
+    int error_code;
+
+    double jointAngle[aubo_robot_namespace::ARM_DOF];
+    std::copy(joint_pos.cbegin(), joint_pos.cend(), jointAngle);
+
+    error_code = service_interface.robotServiceLineMove(jointAngle, false);
+    if (error_code != 0) {
+      ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+      ROS_ERROR("Failed to send MOVL command.");
+      return false;
+    }
+
+    ROS_INFO("MOVL command sent successfully.");
+    return true;
+  }
+
+
   /* */
   void move_track(const control_msgs::JointTrajectoryGoal::ConstPtr &goal) {
     int error_code;
 
+    std::vector<double> joint_pos;
+    std::vector<double> joint_vel;
 
-    auto sort_pos = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
+    auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
     {
-      std::vector<double> joint_pos;
       joint_pos.resize(joint_names.size());
+      joint_vel.resize(joint_names.size());
 
-      for (int i=0; i < joint_names.size(); i++) {
-
-        for (int j=0; j < trajectory.joint_names.size(); j++) {
-
-          if (joint_names[i] == trajectory.joint_names[j]) {
-
+      for (int i=0; i < joint_names.size(); i++)
+        for (int j=0; j < trajectory.joint_names.size(); j++)
+          if (joint_names[i] == trajectory.joint_names[j])
+          {
             joint_pos[i] = trajectory.points[index].positions[j];
-
+            joint_vel[i] = trajectory.points[index].velocities[j];
           }
-        }
-      }
-
-      return joint_pos;
     };
 
-    std::vector<double> joint_pos = sort_pos(goal->trajectory, goal->trajectory.points.size()-1);
+    sorted_extract(goal->trajectory, goal->trajectory.points.size()-1);
 
     ROS_DEBUG("MOVJ: [ %s, %s, %s, %s, %s, %s ]",
       joint_names[0].c_str(), joint_names[1].c_str(), joint_names[2].c_str(),
@@ -425,24 +438,25 @@ public:
       joint_pos[3], joint_pos[4], joint_pos[5]);
 
     move_joint(joint_pos);
+    joint_trajectory_act.setSucceeded();
     return;
 
     // clear waypoints
     service_interface.robotServiceClearGlobalWayPointVector();
 
-    // add waypoints
-    for (const trajectory_msgs::JointTrajectoryPoint &trajectory_pt : goal->trajectory.points) {
+    // add trajectory waypoints
+    for (int i=0; i < goal->trajectory.points.size(); i++) {
 
-      double jointAngle[aubo_robot_namespace::ARM_DOF];
-      std::copy(trajectory_pt.positions.cbegin(), trajectory_pt.positions.cend(), jointAngle);
+      sorted_extract(goal->trajectory, i);
 
-      error_code = service_interface.robotServiceAddGlobalWayPoint(jointAngle);
+      error_code = service_interface.robotServiceAddGlobalWayPoint(joint_pos.data());
+
       ROS_DEBUG("Added jointAngle: [ %f, %f, %f, %f, %f, %f ]",
-        jointAngle[0], jointAngle[1], jointAngle[2], jointAngle[3], jointAngle[4], jointAngle[5]);
+        joint_pos[0], joint_pos[1], joint_pos[2], joint_pos[3], joint_pos[4], joint_pos[5]);
 
       if (error_code != 0) {
         ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-        ROS_ERROR("Failed to add robot waypoint.");
+        ROS_ERROR("Failed to add trajectory waypoint to the robot.");
         joint_trajectory_act.setAborted();
       }
     }
@@ -455,15 +469,15 @@ public:
       joint_trajectory_act.setAborted();
     }
 
-    // start executing trajectory
+    // start trajectory execution
     error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::CARTESIAN_MOVEP, false);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed start executing trajectory.");
+      ROS_ERROR("Failed to start executing trajectory.");
       joint_trajectory_act.setAborted();
     }
 
-    ROS_INFO("Start executing trajectory...");
+    ROS_INFO("Trajectory execution start succesfully.");
     joint_trajectory_act.setSucceeded();
   }
 
