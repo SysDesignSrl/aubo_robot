@@ -47,8 +47,10 @@ private:
 
   ros::Publisher joint_state_pub;
 
+
   ServiceInterface service_interface;
-  double blend_radius = 0.03;
+  int collision_class;
+  double blend_radius;
 
 
 public:
@@ -67,12 +69,16 @@ public:
       return false;
     }
 
+    collision_class = node.param<int>("aubo/collision_class", 6);
+    blend_radius = node.param<double>("aubo/blend_radius", 0.02);
+
+
     // init provided services
     login_srv = node.advertiseService("login", &aubo::AuboRobot::login, this);
     logout_srv = node.advertiseService("logout", &aubo::AuboRobot::logout, this);
     robot_startup_srv = node.advertiseService("robot_startup", &aubo::AuboRobot::robot_startup, this);
     robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo::AuboRobot::robot_shutdown, this);
-    // init_profile_srv = node.advertiseService("init_profile", &aubo::AuboRobot::init_profile, this);
+    init_profile_srv = node.advertiseService("init_profile", &aubo::AuboRobot::init_profile, this);
 
     // init published topics
     joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 100);
@@ -101,51 +107,66 @@ public:
 
   /*
    * Establishing network connection with the manipulator sever */
-  bool login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+
+   bool login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+     auto username = node.param<std::string>("login/username", "AUBO");
+     auto password = node.param<std::string>("login/password", "123456");
+
+     if (login(username, password)) {
+       res.success = true;
+       res.message = "Logged in.";
+     }
+     else {
+       res.success = false;
+       res.message = "Failed to log in.";
+     }
+
+     return true;
+   }
+
+  bool login(std::string username = "AUBO", std::string password = "123456") {
     int error_code;
 
     auto hostname = node.param<std::string>("tcp/hostname", "localhost");
     auto port = node.param<int>("tcp/port", 8899);
-    auto username = node.param<std::string>("login/username", "AUBO");
-    auto password = node.param<std::string>("login/password", "123456");
 
     error_code = service_interface.robotServiceLogin(hostname.c_str(), port, username.c_str(), password.c_str());
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
       ROS_ERROR("Failed to login to %s:%d", hostname.c_str(), port);
-      ROS_ERROR("Username %s", username.c_str());
-      ROS_ERROR("Password %s", password.c_str());
-      res.success = false;
-      res.message = "Failed to log in.";
       return false;
     }
 
     ROS_INFO("Logged in to %s:%d", hostname.c_str(), port);
-    ROS_INFO("Username: %s", username.c_str());
-    ROS_INFO("Password: %s", password.c_str());
-    res.success = true;
-    res.message = "Logged in.";
     return true;
   }
 
 
   /*
    * Disconnecting from the manipulator server */
+
   bool logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+    if (logout()) {
+      res.success = true;
+      res.message = "Logged out.";
+    }
+    else {
+      res.success = false;
+      res.message = "Failed to log out.";
+    }
+
+    return true;
+  }
+
+  bool logout() {
     int error_code;
 
     error_code = service_interface.robotServiceLogout();
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to logout.");
-      res.success = false;
-      res.message = "Failed to log out.";
       return false;
     }
 
-    ROS_INFO("Logged out.");
-    res.success = true;
-    res.message = "Logged out.";
     return true;
   }
 
@@ -158,7 +179,21 @@ public:
  * When it is set to block mode, return value represents whether the interface
  * has been called successfully. */
 
-  bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+ bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+
+   if (robot_startup()) {
+     res.success = true;
+     res.message = "Robot startup correctly.";
+   }
+   else {
+     res.success = false;
+     res.message = "Failed to startup the Robot.";
+   }
+
+   return true;
+ }
+
+  bool robot_startup() {
     int error_code;
 
     aubo_robot_namespace::ToolDynamicsParam tool_dynamics_param;
@@ -173,16 +208,11 @@ public:
     tool_dynamics_param.toolInertia.yz = 0.0;
     tool_dynamics_param.toolInertia.zz = 0.0;
 
-    uint8 collision_class = 0x06;
-
     aubo_robot_namespace::ROBOT_SERVICE_STATE result;
 
     error_code = service_interface.rootServiceRobotStartup(tool_dynamics_param, collision_class, true, true, 1000, result);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to startup the Robot.");
-      res.success = false;
-      res.message = "Failed to log out.";
       return false;
     }
 
@@ -214,155 +244,207 @@ public:
         break;
     }
 
-    ROS_INFO("Robot startup correctly.");
-    res.success = true;
-    res.message = "Robot startup correctly.";
     return true;
   }
 
 
   /*
    * Shutdown the manipulator, including power off, hold the brake */
+
   bool robot_shutdown(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+
+    if (robot_shutdown()) {
+      res.success = true;
+      res.message = "Robot shutdown correctly.";
+    }
+    else {
+      res.success = false;
+      res.message = "Failed to shutdown the Robot.";
+    }
+
+    return true;
+  }
+
+  bool robot_shutdown() {
     int error_code;
 
     error_code = service_interface.robotServiceRobotShutdown();
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to shutdown the Robot.");
-      res.success = false;
-      res.message = "Failed to shutdown the Robot.";
       return false;
     }
 
-    ROS_INFO("Robot shutdown correctly.");
-    res.success = true;
-    res.message = "Robot shutdown correctly.";
     return true;
   }
 
 
   /*
   * Initialize the movement property, set properties to default. */
+
+  bool init_profile(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res) {
+
+    if (init_profile()) {
+      res.success = true;
+      res.message = "Movement profile initialized correctly.";
+    }
+    else {
+      res.success = false;
+      res.message = "Failed to initialize movement profile.";
+    }
+
+    return true;
+  }
+
   bool init_profile() {
     int error_code;
 
     error_code = service_interface.robotServiceInitGlobalMoveProfile();
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to initialize movement profile.");
       return false;
     }
 
-    ROS_INFO("Movement profile initialized correctly.");
     return true;
   }
 
 
-  /*
-   * Set the maximum acceleration of each joint. */
-  bool set_max_joint_acceleration(const std::vector<double> &values) {
+  /* Set the maximum acceleration of each joint. */
+  bool set_max_joint_acceleration(const std::vector<double> &value) {
     int error_code;
 
     aubo_robot_namespace::JointVelcAccParam jointMaxAcc;
-    std::copy(values.begin(), values.end(), jointMaxAcc.jointPara);
+    std::copy(value.begin(), value.end(), jointMaxAcc.jointPara);
 
     error_code = service_interface.robotServiceSetGlobalMoveJointMaxAcc(jointMaxAcc);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to set max joint acceleration.");
       return false;
     }
 
-    ROS_INFO("Max joint acceleration setted correctly.");
     return true;
   }
 
-  /*
-   * Set the maximum velocity of each joint. */
-  bool set_max_joint_velocity(const std::vector<double> &values) {
+  /* Get the maximum acceleration of each joint. */
+  void get_max_joint_acceleration(std::vector<double> &result) {
+
+    aubo_robot_namespace::JointVelcAccParam jointMaxAcc;
+    service_interface.robotServiceGetGlobalMoveJointMaxAcc(jointMaxAcc);
+
+    result.resize(aubo_robot_namespace::ARM_DOF);
+    std::copy(jointMaxAcc.jointPara, jointMaxAcc.jointPara + aubo_robot_namespace::ARM_DOF, result.begin());
+  }
+
+
+  /* Set the maximum velocity of each joint. */
+  bool set_max_joint_velocity(const std::vector<double> &value) {
     int error_code;
 
     aubo_robot_namespace::JointVelcAccParam jointMaxVel;
-    std::copy(values.begin(), values.end(), jointMaxVel.jointPara);
+    std::copy(value.begin(), value.end(), jointMaxVel.jointPara);
 
     error_code = service_interface.robotServiceSetGlobalMoveJointMaxVelc(jointMaxVel);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to set max joint velocity.");
       return false;
     }
 
-    ROS_INFO("Max joint velocity setted correctly.");
     return true;
   }
 
-  /*
-   * Set the maximum linear acceleration of end-effector movement. */
+  /* Get the maximum velocity of each joint. */
+  void get_max_joint_velocity(std::vector<double> &result) {
+
+    aubo_robot_namespace::JointVelcAccParam jointMaxAcc;
+    service_interface.robotServiceGetGlobalMoveJointMaxVelc(jointMaxAcc);
+
+    result.resize(aubo_robot_namespace::ARM_DOF);
+    std::copy(jointMaxAcc.jointPara, jointMaxAcc.jointPara + aubo_robot_namespace::ARM_DOF, result.begin());
+  }
+
+
+  /* Set the maximum linear acceleration of end-effector movement. */
   bool set_max_linear_acceleration(double value) {
     int error_code;
 
     error_code = service_interface.robotServiceSetGlobalMoveEndMaxLineAcc(value);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to set end-effector max linear acceleration to %.2f [m/s^2]", value);
       return false;
     }
 
-    ROS_INFO("Setted end-effector max linear acceleration to %.2f [m/s^2]", value);
     return true;
   }
 
-  /*
-   * Set the maximum linear velocity of end-effector movement. */
+  /* Get the maximum linear acceleration of end-effector movement. */
+  void get_max_linear_acceleration(double &result) {
+    service_interface.robotServiceGetGlobalMoveEndMaxLineAcc(result);
+  }
+
+
+  /* Set the maximum linear velocity of end-effector movement. */
   bool set_max_linear_velocity(double value) {
     int error_code;
 
     error_code = service_interface.robotServiceSetGlobalMoveEndMaxLineVelc(value);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to set end-effector max linear velocity to %.2f [m/s]", value);
       return false;
     }
 
-    ROS_INFO("Setted to set end-effector max linear velocity to %.2f [m/s]", value);
     return true;
   }
 
-  /*
-   * Set the maximum angular acceleration of end-effector movement. */
+  /* Get the maximum linear velocity of end-effector movement. */
+  void get_max_linear_velocity(double &result) {
+    service_interface.robotServiceGetGlobalMoveEndMaxLineVelc(result);
+  }
+
+
+  /* Set the maximum angular acceleration of end-effector movement. */
   bool set_max_angular_acceleration(double value) {
     int error_code;
 
     error_code = service_interface.robotServiceSetGlobalMoveEndMaxAngleAcc(value);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to set end-effector max angular acceleration to %.2f [rad/s^2]", value);
       return false;
     }
 
-    ROS_INFO("Setted to set end-effector max angular acceleration to %.2f rad/s^2]", value);
     return true;
   }
 
-  /*
-   * Set the maximum angular velocity of end-effector movement. */
+  /* Get the maximum angular acceleration of end-effector movement. */
+  void get_max_angular_acceleration(double &result) {
+    service_interface.robotServiceGetGlobalMoveEndMaxAngleAcc(result);
+  }
+
+
+  /* Set the maximum angular velocity of end-effector movement. */
   bool set_max_angular_velocity(double value) {
     int error_code;
 
     error_code = service_interface.robotServiceSetGlobalMoveEndMaxAngleVelc(value);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to set end-effector max angular velocity to %.2f [rad/s]", value);
       return false;
     }
 
-    ROS_INFO("Setted to set end-effector max angular velocity to %.2f [rad/s]", value);
     return true;
   }
 
+  /* Get the maximum angular velocity of end-effector movement. */
+  void get_max_angular_velocity(double &result) {
+    service_interface.robotServiceGetGlobalMoveEndMaxAngleVelc(result);
+  }
 
-  /* */
+
+/* The manipulator moves to the target position through the joint movement
+ * (Move Joint), the target position is described by the angle of each joint.
+ * The maximum velocity and the maximum acceleration of the joint movement
+ * should be set before calling it, and the offset attribute should be set if
+ * the offset is used. The input has two option, one is the waypoint, or directly
+ * gives the angle of each joint. */
+
   bool move_joint(const std::vector<double> &joint_pos) {
     int error_code;
 
@@ -372,11 +454,9 @@ public:
     error_code = service_interface.robotServiceJointMove(jointAngle, false);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to send MOVJ command.");
       return false;
     }
 
-    ROS_INFO("MOVJ command sent successfully.");
     return true;
   }
 
@@ -397,63 +477,45 @@ public:
     error_code = service_interface.robotServiceLineMove(jointAngle, false);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to send MOVL command.");
       return false;
     }
 
-    ROS_INFO("MOVL command sent successfully.");
     return true;
   }
 
 
-  /* */
+/* The track movement of the manipulator. This movement is belonged to different
+ * movement type according to the different type of subMoveMode. */
+
   void move_track(const control_msgs::JointTrajectoryGoal::ConstPtr &goal) {
     int error_code;
-
-    std::vector<double> joint_pos;
-    std::vector<double> joint_vel;
-
-    auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
-    {
-      joint_pos.resize(joint_names.size());
-      joint_vel.resize(joint_names.size());
-
-      for (int i=0; i < joint_names.size(); i++)
-        for (int j=0; j < trajectory.joint_names.size(); j++)
-          if (joint_names[i] == trajectory.joint_names[j])
-          {
-            joint_pos[i] = trajectory.points[index].positions[j];
-            joint_vel[i] = trajectory.points[index].velocities[j];
-          }
-    };
-
-    sorted_extract(goal->trajectory, goal->trajectory.points.size()-1);
-
-    ROS_DEBUG("MOVJ: [ %s, %s, %s, %s, %s, %s ]",
-      joint_names[0].c_str(), joint_names[1].c_str(), joint_names[2].c_str(),
-      joint_names[3].c_str(), joint_names[4].c_str(), joint_names[5].c_str());
-
-    ROS_DEBUG("MOVJ: [ %f, %f, %f, %f, %f, %f ]",
-      joint_pos[0], joint_pos[1], joint_pos[2],
-      joint_pos[3], joint_pos[4], joint_pos[5]);
-
-    move_joint(joint_pos);
-    joint_trajectory_act.setSucceeded();
-    return;
 
     // clear waypoints
     service_interface.robotServiceClearGlobalWayPointVector();
 
     // add trajectory waypoints
-    for (int i=0; i < goal->trajectory.points.size(); i++) {
+    for (int i = 0; i < goal->trajectory.points.size(); i++) {
+
+      std::vector<double> joint_pos;
+      std::vector<double> joint_vel;
+
+      auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
+      {
+        joint_pos.resize(joint_names.size());
+        joint_vel.resize(joint_names.size());
+
+        for (int i=0; i < joint_names.size(); i++)
+          for (int j=0; j < trajectory.joint_names.size(); j++)
+            if (joint_names[i] == trajectory.joint_names[j])
+            {
+              joint_pos[i] = trajectory.points[index].positions[j];
+              joint_vel[i] = trajectory.points[index].velocities[j];
+            }
+      };
 
       sorted_extract(goal->trajectory, i);
 
       error_code = service_interface.robotServiceAddGlobalWayPoint(joint_pos.data());
-
-      ROS_DEBUG("Added jointAngle: [ %f, %f, %f, %f, %f, %f ]",
-        joint_pos[0], joint_pos[1], joint_pos[2], joint_pos[3], joint_pos[4], joint_pos[5]);
-
       if (error_code != 0) {
         ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
         ROS_ERROR("Failed to add trajectory waypoint to the robot.");
@@ -470,40 +532,35 @@ public:
     }
 
     // start trajectory execution
-    error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::CARTESIAN_MOVEP, false);
+    error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JIONT_CUBICSPLINE, false);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
       ROS_ERROR("Failed to start executing trajectory.");
       joint_trajectory_act.setAborted();
     }
 
-    ROS_INFO("Trajectory execution start succesfully.");
+    ROS_INFO("Started trajectory execution succesfully.");
     joint_trajectory_act.setSucceeded();
   }
 
 
   /*
-   * Get the joint angle of the manipulator */
-  void get_joint_angle() {
+   * Get the joint angles of the manipulator */
+  bool get_joint_angle(std::vector<double> &joint_pos) {
     int error_code;
 
     aubo_robot_namespace::JointParam jointParam;
     error_code = service_interface.robotServiceGetJointAngleInfo(jointParam);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to get current joint angles.");
-      return;
+      return false;
     }
 
-    std::vector<double> joint_pos(aubo_robot_namespace::ARM_DOF);
+    joint_pos.resize(aubo_robot_namespace::ARM_DOF);
     std::copy(jointParam.jointPos, jointParam.jointPos + aubo_robot_namespace::ARM_DOF, joint_pos.begin());
-
-    sensor_msgs::JointState joint_state;
-    joint_state.header.stamp = ros::Time::now();
-    joint_state.name = joint_names;
-    joint_state.position = joint_pos;
-    joint_state_pub.publish(joint_state);
+    return true;
   }
+
 
   /*
    * Get the waypoint information of the manipulator */
@@ -599,11 +656,9 @@ public:
    error_code = service_interface.robotServiceRegisterRealTimeRoadPointCallback(ptr, arg);
    if (error_code != 0) {
      ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-     ROS_ERROR("Failed to register to Robot waypoint callback.");
      return false;
    }
 
-   ROS_INFO("Successfully registered to Robot waypoint callback.");
    return true;
  }
 
@@ -621,20 +676,16 @@ public:
     error_code = service_interface.robotServiceRegisterRobotEventInfoCallback(ptr, arg);
     if (error_code != 0) {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to register to Robot event Info callback.");
       return false;
     }
 
-    ROS_INFO("Successfully registered to Robot event Info callback.");
     return true;
   }
 
 
-
   /*
    * Define the function pointer for the waypoint information push */
-  void
-  real_time_waypoint_callback(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg) {
+  void real_time_waypoint_callback(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg) {
 
     std::vector<double> joint_pos(aubo_robot_namespace::ARM_DOF);
     std::copy(wayPoint->jointpos, wayPoint->jointpos + aubo_robot_namespace::ARM_DOF, joint_pos.begin());

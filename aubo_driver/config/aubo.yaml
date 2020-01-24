@@ -2,5 +2,22 @@
 ## AUBO ##
 ##########
 
+collision_class: 6
+  # The collision class of the manipulator, in the range [1-10].
+
+max_joint_velocity: [ 2.62, 2.62, 2.62, 3.14, 3.14, 3.14 ]
+  # The maximum joint velocity, the value si no more than [rad/s]
+max_joint_acceleration: [ 2.62, 2.62, 2.62, 3.14, 3.14, 3.14 ]
+  # The maximum joint acceleration, the value is no more than 3.14 [rad/s^2]
+
+max_linear_velocity: 5.0
+  # The maximum linear velocity of the end-effector, the value is no more than 5.0 [m/s]
+max_linear_acceleration: 5.0
+  # The maximum linear acceleration of the end-effector, the value is no more than 5.0 [m/s^2]
+max_angular_velocity: 3.14
+  # The maximum angular velocity of the end-effector, the value is no more than 3.14 [rad/s]
+max_angular_acceleration: 3.14
+  # The maximum angular acceleration of the end-effector, the value is no mora than 3.14 [rad/s^2]
+
 blend_radius: 0.03
   #

@@ -1,10 +1,13 @@
 // STL
+#include <sstream>
 #include <string>
 //
 #include <ros/ros.h>
 #include <ros/console.h>
 // std_srvs
 #include <std_srvs/Trigger.h>
+// sensor_msgs
+#include <sensor_msgs/JointState.h>
 //
 #include "aubo_driver/aubo_robot.h"
 // AUBO SDK
@@ -27,9 +30,10 @@
 
 void robot_event_info_callback(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *arg) {
 
-  std::stringstream ss;
-  ROS_INFO("Event Code: %d, %s", eventInfo->eventCode, eventInfo->eventContent.c_str());
+  int code =  eventInfo->eventCode;
+  std::string message = eventInfo->eventContent;
 
+  ROS_INFO("Event Code: %d, %s", code, message.c_str());
 }
 
 
@@ -43,12 +47,11 @@ int main(int argc, char* argv[]) {
     // Parameters
     auto freq = node.param<double>("publish_frequency", 10);
 
-    // Client Services
-    auto login_cli = node.serviceClient<std_srvs::Trigger>("login");
-    auto logout_cli = node.serviceClient<std_srvs::Trigger>("logout");
-    auto robot_startup_cli = node.serviceClient<std_srvs::Trigger>("robot_startup");
-    auto robot_shutdown_cli = node.serviceClient<std_srvs::Trigger>("robot_shutdown");
-    // auto init_profile_cli = node.serviceClient<std_srvs::Trigger>("init_profile");
+    std::vector<std::string> joint_names;
+    if (!node.getParam("joint_names", joint_names)) {
+      ROS_FATAL("Failed to retrieve '%s' parameter.", "joint_names");
+      return 1;
+    }
 
     // Published Topics
     auto joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 100);
@@ -67,38 +70,16 @@ int main(int argc, char* argv[]) {
 
 
     // Login
-    while (!login_cli.waitForExistence(ros::Duration(1.0))) {
-      ROS_INFO_THROTTLE(10, "Waiting for service: '%s'...", login_cli.getService().c_str());
-    }
-
-    std_srvs::Trigger login_trigger;
-    if (!login_cli.call(login_trigger)) {
-      ROS_FATAL("Login error!");
+    if (!robot.login()) {
+      ROS_FATAL("Failed to log in.");
       return 1;
     }
 
-    if (!login_trigger.response.success) {
-      ROS_FATAL_STREAM(login_trigger.response.message);
+    // Robot startup
+    if (!robot.robot_startup()) {
+      ROS_FATAL("Failed to startup the robot.");
       return 1;
     }
-
-
-    // Robot Startup
-    while (!robot_startup_cli.waitForExistence(ros::Duration(1.0))) {
-      ROS_INFO_THROTTLE(10, "Waiting for service: '%s'...", robot_startup_cli.getService().c_str());
-    }
-
-    std_srvs::Trigger startup_trigger;
-    if (!robot_startup_cli.call(startup_trigger)) {
-      ROS_FATAL("Robot startup error!");
-      return 1;
-    }
-
-    if (!startup_trigger.response.success) {
-      ROS_FATAL_STREAM(startup_trigger.response.message);
-      return 1;
-    }
-
 
     // register to event info
     robot.register_event_info(robot_event_info_callback, nullptr);
@@ -108,80 +89,108 @@ int main(int argc, char* argv[]) {
     robot.init_profile();
 
     // set max joint acceleration
-    std::vector<double> joint_max_acc
-    {
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI
-    };
-    robot.set_max_joint_acceleration(joint_max_acc);
+    std::vector<double> max_joint_acc;
+    if (node.getParam("aubo/max_joint_acceleration", max_joint_acc)) {
+      robot.set_max_joint_acceleration(max_joint_acc);
+    }
 
     // set max joint velocity
-    std::vector<double> joint_max_vel
-    {
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI,
-      50.0 / 180*M_PI
-    };
-    robot.set_max_joint_velocity(joint_max_vel);
+    std::vector<double> max_joint_vel;
+    if (node.getParam("aubo/max_joint_velocity", max_joint_vel)) {
+      robot.set_max_joint_velocity(max_joint_vel);
+    }
+
+    // std::vector<double> max_joint_acc;
+    robot.get_max_joint_acceleration(max_joint_acc);
+
+    std::stringstream ass;
+    ass << "[ ";
+    for (double val : max_joint_acc) {
+      ass << val << " ";
+    }
+    ass << "] ";
+    ROS_DEBUG_STREAM("max joint acceleration: " << ass.str() << "[rad/s^2]");
+
+    // std::vector<double> max_joint_vel;
+    robot.get_max_joint_velocity(max_joint_vel);
+
+    std::stringstream vss;
+    vss << "[ ";
+    for (double val : max_joint_vel) {
+      vss << val << " ";
+    }
+    vss << "] ";
+    ROS_DEBUG_STREAM("max joint velocity: " << vss.str() << "[rad/s]");
+
 
     // init motion profile
-    robot.init_profile();
+    //robot.init_profile();
 
-    robot.set_max_linear_acceleration(0.2);
-    robot.set_max_linear_velocity(0.2);
-    robot.set_max_angular_acceleration(0.2);
-    robot.set_max_angular_velocity(0.2);
+    double max_linear_acc;
+    if (node.getParam("aubo/max_linear_acceleration", max_linear_acc)) {
+      robot.set_max_linear_acceleration(max_linear_acc);
+    }
+    double max_linear_vel;
+    if (node.getParam("aubo/max_linear_velocity", max_linear_vel)) {
+      robot.set_max_linear_velocity(max_linear_vel);
+    }
+    double max_angular_acc;
+    if (node.getParam("aubo/max_angular_acceleration", max_angular_acc)) {
+      robot.set_max_angular_acceleration(max_angular_acc);
+    }
+    double max_angular_vel;
+    if (node.getParam("aubo/max_angular_velocity", max_angular_vel)) {
+      robot.set_max_angular_velocity(max_angular_vel);
+    }
+
+    // double max_linear_acc;
+    robot.get_max_linear_acceleration(max_linear_acc);
+    ROS_DEBUG("max linear acceleration: %.2f [m/s^2]", max_linear_acc);
+
+    // double max_linear_vel;
+    robot.get_max_linear_velocity(max_linear_vel);
+    ROS_DEBUG("max linear velocity: %.2f [m/s]", max_linear_vel);
+
+    // double max_angular_acc;
+    robot.get_max_angular_acceleration(max_angular_acc);
+    ROS_DEBUG("max angular acceleration: %.2f [rad/s^2]", max_angular_acc);
+
+    // double max_angular_vel;
+    robot.get_max_angular_velocity(max_angular_vel);
+    ROS_DEBUG("max angular velocity: %.2f [rad/s]", max_angular_vel);
 
 
     // Loop
     ros::Rate rate(freq);
     while (ros::ok()) {
-      rate.sleep();
+      ros::Time now = ros::Time::now();
 
-      robot.get_joint_angle();
+      std::vector<double> joint_pos;
+      if (!robot.get_joint_angle(joint_pos)) {
+        ROS_ERROR_THROTTLE(1.0, "Failed to retrieve joint angles from robot!");
+      }
+
+      sensor_msgs::JointState joint_state;
+      joint_state.header.stamp = now;
+      joint_state.name = joint_names;
+      joint_state.position = joint_pos;
+      joint_state_pub.publish(joint_state);
+
+      rate.sleep();
     }
 
 
     // Robot Shutdown
-    while (!robot_shutdown_cli.waitForExistence(ros::Duration(1.0))) {
-      ROS_INFO_THROTTLE(10, "Waiting for service: '%s'...", robot_shutdown_cli.getService().c_str());
-    }
-
-    std_srvs::Trigger shutdown_trigger;
-    if (!robot_shutdown_cli.call(shutdown_trigger)) {
-      ROS_FATAL("Robot shutdown error!");
+    if (!robot.robot_shutdown()) {
+      ROS_FATAL("Failed to shutdown the robot.");
       return 1;
     }
-
-    if (!shutdown_trigger.response.success) {
-      ROS_FATAL_STREAM(shutdown_trigger.response.message);
-      return 1;
-    }
-
 
     // Logout
-    while (!logout_cli.waitForExistence(ros::Duration(1.0))) {
-      ROS_INFO_THROTTLE(10, "Waiting for service: '%s'...", logout_cli.getService().c_str());
-    }
-
-    std_srvs::Trigger logout_trigger;
-    if (!logout_cli.call(login_trigger)) {
-      ROS_FATAL("Logout error!");
+    if (!robot.logout()) {
+      ROS_FATAL("Failed to log out.");
       return 1;
     }
-
-    if (!logout_trigger.response.success) {
-      ROS_FATAL_STREAM(logout_trigger.response.message);
-      return 1;
-    }
-
 
     return 0;
 }

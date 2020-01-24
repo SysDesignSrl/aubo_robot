@@ -1,11 +1,13 @@
 <launch>
-  <env name="ROSCONSOLE_CONFIG_FILE"
-       value="$(find aubo_driver)/rosconsole.conf"/>
+  <!-- <env name="ROSCONSOLE_CONFIG_FILE"
+       value="$(find aubo_driver)/rosconsole.conf"/> -->
 
   <node name="aubo_driver" pkg="aubo_driver" type="aubo_driver" output="screen">
+    <param name="publish_frequency" value="50" />
+    <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml" />
+    <rosparam ns="aubo" command="load" file="$(find aubo_driver)/config/aubo.yaml" />
     <rosparam ns="tcp" command="load" file="$(find aubo_driver)/config/tcp.yaml" />
     <rosparam ns="login" command="load" file="$(find aubo_driver)/config/login.yaml" />
-    <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml" />
   </node>
 
 </launch>

@@ -18,7 +18,9 @@ int main(int argc, char* argv[]) {
   // controller.start();
 
 
-  ros::spin();
+  // Loop
+  ros::MultiThreadedSpinner spinner(0);
+  spinner.spin();
 
   return 0;
 }
