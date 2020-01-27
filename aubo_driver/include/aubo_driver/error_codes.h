@@ -5,9 +5,11 @@
 #include <map>
 
 
-namespace aubo {
+namespace aubo
+{
 
-std::map<int, std::string> error_codes {
+std::map<int, std::string> error_codes
+{
   {     0, "Success" },
   { 10001, "General Fail" },
   { 10002, "Parameter error" },

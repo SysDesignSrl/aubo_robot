@@ -63,7 +63,7 @@ link_directories(${catkin_LIB_DIRS} lib/lib64 lib/lib64/log4cplus lib/lib64/conf
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(aubo_driver src/driver_node.cpp)
+add_executable(aubo_driver src/driver_node.cpp src/aubo_robot.cpp)
 
 link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
