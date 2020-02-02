@@ -46,9 +46,14 @@ include_directories(
   include
   include/lib
   include/lib/otg
-${catkin_INCLUDE_DIRS})
+  ${catkin_INCLUDE_DIRS})
 
-link_directories(${catkin_LIB_DIRS} lib/lib64 lib/lib64/log4cplus lib/lib64/config lib/lib64/aubocontroller)
+link_directories(
+  lib/lib64
+  lib/lib64/log4cplus
+  lib/lib64/config
+  lib/lib64/aubocontroller
+  ${catkin_LIB_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}

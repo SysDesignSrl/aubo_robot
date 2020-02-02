@@ -1,7 +1,8 @@
+#ifndef AUBO_HARDWARE_INTERFACE_H
+#define AUBO_HARDWARE_INTERFACE_H
 // STL
 #include <string>
 #include <vector>
-#include <algorithm>
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -15,15 +16,14 @@
 
 namespace aubo_hardware_interface {
 
-class AuboHardwareInterface : public hardware_interface::RobotHW {
+class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboDriver aubo_driver;
-  aubo_driver::ControlOption control_option;
-
 
   ros::NodeHandle node;
 
-  int n_joints;
+  double loop_hz;
+  std::vector<std::string> joint_names;
 
   hardware_interface::JointStateInterface jnt_state_interface;
   hardware_interface::PositionJointInterface jnt_pos_interface;
@@ -33,35 +33,36 @@ private:
   std::vector<double> j_vel, j_vel_cmd;
   std::vector<double> j_eff, j_eff_cmd;
 
-
 public:
-  double loop_hz;
-  std::vector<std::string> joint_names;
 
-  AuboHardwareInterface(const ros::NodeHandle &node) : node(node) {
-
+  AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) : node(node)
+  {
     init();
   }
 
 
-  bool init() {
-
-    if (!node.getParam("/aubo/hardware_interface/loop_hz", loop_hz)) {
+  bool init()
+  {
+    if (!node.getParam("/aubo/hardware_interface/loop_hz", loop_hz))
+    {
       ROS_ERROR("Failed to retrieve '/aubo/hardware_interface/loop_hz' parameter.");
+      return false;
     }
 
-    if (!node.getParam("/aubo/hardware_interface/joints", joint_names)) {
+    if (!node.getParam("/aubo/hardware_interface/joints", joint_names))
+    {
       ROS_ERROR("Failed to retrieve '/aubo/hardware_interface/joints' parameter.");
+      return false;
     }
 
-    n_joints = joint_names.size();
+    int n_joints = joint_names.size();
 
-    j_pos.resize(n_joints, 0); j_pos_cmd.resize(n_joints, 0);
-    j_vel.resize(n_joints, 0); j_vel_cmd.resize(n_joints, 0);
-    j_eff.resize(n_joints, 0); j_eff_cmd.resize(n_joints, 0);
+    j_pos.resize(n_joints, 0.0); j_pos_cmd.resize(n_joints, 0.0);
+    j_vel.resize(n_joints, 0.0); j_vel_cmd.resize(n_joints, 0.0);
+    j_eff.resize(n_joints, 0.0); j_eff_cmd.resize(n_joints, 0.0);
 
-    for (int i=0; i < n_joints; i++) {
-
+    for (int i=0; i < n_joints; i++)
+    {
       hardware_interface::JointStateHandle jnt_state_handle(joint_names[i], &j_pos[i], &j_vel[i], &j_eff[i]);
       jnt_state_interface.registerHandle(jnt_state_handle);
 
@@ -75,93 +76,101 @@ public:
     registerInterface(&jnt_state_interface);
     registerInterface(&jnt_pos_interface);
     registerInterface(&jnt_vel_interface);
+
+    return true;
   }
 
 
-  bool start() {
-    int ret = -1;
+  bool start()
+  {
+    auto hostname = node.param<std::string>("tcp/hostname", "localhost");
+    auto port = node.param<int>("tcp/port", 8899);
 
-    auto hostname = node.param<std::string>("/aubo_driver/tcp/hostname", "localhost");
-    auto port = node.param<int>("/aubo_driver/tcp/port", 8899);
-
-    // connect to the robot controller
-    if (!aubo_driver.login(hostname, port)) {
-      ros::param::set("/aubo_driver/robot_connected", false);
-      ROS_WARN("Failed to connect to %s:%d", hostname.c_str(), port);
+    // Login
+    if (!aubo_driver.login(hostname, port))
+    {
+      node.setParam("robot_connected", false);
+      ROS_ERROR("Failed to connect to %s:%d", hostname.c_str(), port);
       return false;
     }
 
+    node.setParam("robot_connected", true);
     ROS_INFO("Connected to %s:%d", hostname.c_str(), port);
 
-    // switch to ros-controller
-    int count = 2;
-    do {
-      ret = aubo_driver.robot_send_service.robotServiceEnterTcp2CanbusMode();
-      count--;
-    } while (ret != aubo_robot_namespace::InterfaceCallSuccCode && count < 0);
-
-    if (ret == aubo_robot_namespace::InterfaceCallSuccCode) {
-      control_option = aubo_driver::RosMoveIt;
-      ROS_INFO("Switches to ros-controller successfully");
+    // Startup
+    if (!aubo_driver.robot_startup())
+    {
+      ROS_ERROR("Failed to start up the Robot.");
+      return false;
     }
-    if (ret == aubo_robot_namespace::ErrCode_ResponseReturnError) {
-      // already connect, disconnect first.
-      ret = aubo_driver.robot_send_service.robotServiceLeaveTcp2CanbusMode();
 
-      control_option = aubo_driver::AuboAPI;
-      ROS_WARN("Failed to switch to ros-controller, the robot is still controlled by the robot controller!");
+    ROS_INFO("Robot started up correctly.");
+
+    // TCP 2 CANbus
+    if (!aubo_driver.enable_tcp_canbus_mode())
+    {
+      ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+      return false;
+    }
+
+    ROS_INFO("Enabled TCP 2 CANbus Mode.");
+
+    return true;
+  }
+
+
+  bool stop()
+  {
+    // TCP 2 CANbus
+    if (!aubo_driver.disable_tcp_canbus_mode())
+    {
+      ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
+      return false;
+    }
+
+    ROS_INFO("Disabled TCP 2 CANbus Mode.");
+
+    // Shutdown
+    if (!aubo_driver.robot_shutdown())
+    {
+      ROS_ERROR("Failed to shutdown the Robot.");
+      return false;
+    }
+
+    ROS_INFO("Robot shutted down correctly.");
+
+    // Logout
+    if (!aubo_driver.logout())
+    {
+      ROS_ERROR("Failed to log out.");
+      return false;
+    }
+
+    node.setParam("robot_connected", false);
+    ROS_INFO("Logged out.");
+
+    return true;
+  }
+
+
+  void read()
+  {
+    if (!aubo_driver.read(j_pos))
+    {
+      ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions from robot!");
     }
   }
 
 
-  void read() {
-    int ret = -1;
-
-    if (!aubo_driver.controller_connected_flag) {
-
-    }
-
-    /** Query the states of robot joints **/
-    ret = aubo_driver.robot_receive_service.robotServiceGetCurrentWaypointInfo(aubo_driver.robot_state.wayPoint_);
-
-    if (ret == aubo_robot_namespace::InterfaceCallSuccCode)
+  void write()
+  {
+    if (!aubo_driver.write(j_pos_cmd))
     {
-        for (int i=0; i < n_joints; i++) {
-          j_pos[i] = aubo_driver.robot_state.wayPoint_.jointpos[i];
-        }
-
-        /** Get the buff size of thr rib **/
-        //robot_receive_service_.robotServiceGetRobotDiagnosisInfo(rs.robot_diagnosis_info_);
-        //rib_buffer_size_ = rs.robot_diagnosis_info_.macTargetPosDataSize;
-
-//      robot_receive_service_.robotServiceGetRobotCurrentState(rs.state_);            // this is controlled by Robot Controller
-//      robot_receive_service_.getErrDescByCode(rs.code_);
-        // if (real_robot_exist_)
-        // {
-        //     // publish robot_status information to the controller action server.
-        //     robot_status_.mode.val            = (int8)rs.robot_diagnosis_info_.orpeStatus;
-        //     robot_status_.e_stopped.val       = (int8)(rs.robot_diagnosis_info_.softEmergency || emergency_stopped_);
-        //     robot_status_.drives_powered.val  = (int8)rs.robot_diagnosis_info_.armPowerStatus;
-        //     robot_status_.motion_possible.val = (int)(!start_move_);
-        //     robot_status_.in_motion.val       = (int)start_move_;
-        //     robot_status_.in_error.val        = (int)protective_stopped_;   //used for protective stop.
-        //     robot_status_.error_code          = (int32)rs.robot_diagnosis_info_.singularityOverSpeedAlarm;
-        // }
+      ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
     }
-    else if (ret == aubo_robot_namespace::ErrCode_SocketDisconnect)
-    {
-      /** Here we check the connection to satisfy the ROS-I specification **/
-      /** Try to connect with the robot again **/
-    }
-  }
-
-
-  void write() {
-    int ret = -1;
-
-    ret = aubo_driver.robot_send_service.robotServiceSetRobotPosData2Canbus(j_pos_cmd.data());
   }
 
 };
 
-} // namespace
+}  // namespace
+#endif

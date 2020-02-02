@@ -1,6 +1,6 @@
 aubo:
   hardware_interface:
-     loop_hz: 10
+     loop_hz: 200
      joints:
        - shoulder_joint
        - upperarm_joint

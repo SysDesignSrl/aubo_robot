@@ -15,6 +15,5 @@
   <depend>hardware_interface</depend>
   <depend>transmission_interface</depend>
   <depend>controller_manager</depend>
-  <depend>aubo_driver</depend>
 
 </package>
