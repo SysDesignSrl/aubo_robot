@@ -3,6 +3,7 @@
 // STL
 #include <string>
 #include <vector>
+#include <algorithm>
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -81,6 +82,43 @@ public:
   }
 
 
+  bool init_robot()
+  {
+    std::vector<double> max_joint_acc;
+    if (!node.getParam("aubo/max_joint_acceleration", max_joint_acc))
+    {
+      ROS_ERROR("Failed to retrieve 'max_joint_acceleration' parameter.");
+      return false;
+    }
+    std::vector<double> max_joint_vel;
+    if (!node.getParam("aubo/max_joint_velocity", max_joint_vel))
+    {
+      ROS_ERROR("Failed to retrieve 'max_joint_velocity' parameter.");
+      return false;
+    }
+
+    if (!aubo_driver.set_max_joint_acceleration(max_joint_acc))
+    {
+      ROS_ERROR("Failed to set max joint acceleration!");
+      return false;
+    }
+
+    aubo_driver.get_max_joint_acceleration(max_joint_acc);
+    ROS_DEBUG("max joint acc: [ %f %f %f %f %f %f ]", max_joint_acc[0], max_joint_acc[1], max_joint_acc[2], max_joint_acc[3], max_joint_acc[4], max_joint_acc[5]);
+
+    if (!aubo_driver.set_max_joint_velocity(max_joint_vel))
+    {
+      ROS_ERROR("Failed to set max joint velocity!");
+      return false;
+    }
+
+    aubo_driver.get_max_joint_velocity(max_joint_vel);
+    ROS_DEBUG("max joint vel: [ %f %f %f %f %f %f ]", max_joint_vel[0], max_joint_vel[1], max_joint_vel[2], max_joint_vel[3], max_joint_vel[4], max_joint_vel[5]);
+
+    return true;
+  }
+
+
   bool start()
   {
     auto hostname = node.param<std::string>("tcp/hostname", "localhost");
@@ -114,6 +152,14 @@ public:
     }
 
     ROS_INFO("Enabled TCP 2 CANbus Mode.");
+
+
+    if (!init_robot())
+    {
+      ROS_FATAL("Failed to initialize the Robot.");
+      return false;
+    }
+
 
     return true;
   }
@@ -159,15 +205,22 @@ public:
     {
       ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions from robot!");
     }
+    // ROS_DEBUG("j_pos: [ %f %f %f %f %f %f ]", j_pos[0], j_pos[1], j_pos[2], j_pos[3], j_pos[4], j_pos[5]);
   }
 
 
   void write()
   {
+    if (std::all_of(j_pos_cmd.cbegin(), j_pos_cmd.cend(), [](double value) { return value == 0.0; }))
+    {
+      return;
+    }
+
     if (!aubo_driver.write(j_pos_cmd))
     {
       ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
     }
+    // ROS_DEBUG("j_pos_cmd: [ %f %f %f %f %f %f ]", j_pos_cmd[0], j_pos_cmd[1], j_pos_cmd[2], j_pos_cmd[3], j_pos_cmd[4], j_pos_cmd[5]);
   }
 
 };

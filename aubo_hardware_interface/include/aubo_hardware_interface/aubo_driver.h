@@ -139,6 +139,60 @@ public:
   }
 
 
+  bool set_max_joint_acceleration(const std::vector<double> &value)
+  {
+    int error_code;
+
+    aubo_robot_namespace::JointVelcAccParam jointMaxAcc;
+    std::copy(value.begin(), value.end(), jointMaxAcc.jointPara);
+
+    error_code = service_interface.robotServiceSetGlobalMoveJointMaxAcc(jointMaxAcc);
+    if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+
+  void get_max_joint_acceleration(std::vector<double> &result)
+  {
+    aubo_robot_namespace::JointVelcAccParam jointMaxAcc;
+    service_interface.robotServiceGetGlobalMoveJointMaxAcc(jointMaxAcc);
+
+    result.resize(aubo_robot_namespace::ARM_DOF);
+    std::copy(jointMaxAcc.jointPara, jointMaxAcc.jointPara + aubo_robot_namespace::ARM_DOF, result.begin());
+  }
+
+
+  bool set_max_joint_velocity(const std::vector<double> &value)
+  {
+    int error_code;
+
+    aubo_robot_namespace::JointVelcAccParam jointMaxVel;
+    std::copy(value.begin(), value.end(), jointMaxVel.jointPara);
+
+    error_code = service_interface.robotServiceSetGlobalMoveJointMaxVelc(jointMaxVel);
+    if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+
+  void get_max_joint_velocity(std::vector<double> &result)
+  {
+    aubo_robot_namespace::JointVelcAccParam jointMaxAcc;
+    service_interface.robotServiceGetGlobalMoveJointMaxVelc(jointMaxAcc);
+
+    result.resize(aubo_robot_namespace::ARM_DOF);
+    std::copy(jointMaxAcc.jointPara, jointMaxAcc.jointPara + aubo_robot_namespace::ARM_DOF, result.begin());
+  }
+
+
   bool read(std::vector<double> &joint_pos)
   {
     int error_code;
