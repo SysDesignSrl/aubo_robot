@@ -1,7 +1,12 @@
-<?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="aubo_i5">
 
-  <xacro:macro name="aubo_i5" params="prefix">
+  <xacro:macro name="aubo_i5" params="prefix
+    shoulder_joint_min:=-3.05 shoulder_joint_max:=3.05
+    upperArm_joint_min:=-3.05 upperArm_joint_max:=3.05
+    foreArm_joint_min:=-3.05  foreArm_joint_max:=3.05
+    wrist1_joint_min:=-3.05   wrist1_joint_max:=3.05
+    wrist2_joint_min:=-3.05   wrist2_joint_max:=3.05
+    wrist3_joint_min:=-3.05   wrist3_joint_max:=3.05">
 
     <link name="${prefix}base_link">
       <visual>
@@ -34,7 +39,7 @@
       <parent link="base_link" />
       <child link="shoulder_Link" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.05" upper="3.05" velocity="2.62" effort="207.0"/>
+      <limit lower="${shoulder_joint_min}" upper="${shoulder_joint_max}" velocity="2.62" effort="207.0"/>
     </joint>
 
     <link name="${prefix}shoulder_Link">
@@ -68,7 +73,7 @@
       <parent link="shoulder_Link" />
       <child link="upperArm_Link" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.05" upper="3.05" velocity="2.62" effort="207.0"/>
+      <limit lower="${upperArm_joint_min}" upper="${upperArm_joint_max}" velocity="2.62" effort="207.0"/>
     </joint>
 
     <link name="${prefix}upperArm_Link">
@@ -102,7 +107,7 @@
       <parent link="upperArm_Link" />
       <child link="foreArm_Link" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.05" upper="3.05" velocity="2.62" effort="207.0"/>
+      <limit lower="${foreArm_joint_min}" upper="${foreArm_joint_max}" velocity="2.62" effort="207.0"/>
     </joint>
 
     <link name="${prefix}foreArm_Link">
@@ -136,7 +141,7 @@
       <parent link="foreArm_Link" />
       <child link="wrist1_Link" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.05" upper="3.05" velocity="3.14" effort="34.0"/>
+      <limit lower="${wrist1_joint_min}" upper="${wrist1_joint_max}" velocity="3.14" effort="34.0"/>
     </joint>
 
     <link name="${prefix}wrist1_Link">
@@ -170,7 +175,7 @@
       <parent link="wrist1_Link" />
       <child link="wrist2_Link" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.05" upper="3.05" velocity="3.14" effort="34.0"/>
+      <limit lower="${wrist2_joint_min}" upper="${wrist2_joint_max}" velocity="3.14" effort="34.0"/>
     </joint>
 
     <link name="${prefix}wrist2_Link">
@@ -204,7 +209,7 @@
       <parent link="wrist2_Link" />
       <child link="wrist3_Link" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.05" upper="3.05" velocity="3.14" effort="34.0"/>
+      <limit lower="${wrist3_joint_min}" upper="${wrist3_joint_max}" velocity="3.14" effort="34.0"/>
     </joint>
 
     <link name="${prefix}wrist3_Link">
