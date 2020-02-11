@@ -23,7 +23,7 @@ aubo_i5:
     type: joint_state_controller/JointStateController
     publish_rate: 50
   controller_list:
-    - name: manipulator_i5_controller
+    - name: aubo_controller
       action_ns: follow_joint_trajectory
       default: True
       type: FollowJointTrajectory

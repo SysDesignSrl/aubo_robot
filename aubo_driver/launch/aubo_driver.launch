@@ -1,4 +1,7 @@
 <launch>
+  <arg name="hostname" default="localhost"/>
+  <arg name="port" default="8899"/>
+
   <!-- <env name="ROSCONSOLE_CONFIG_FILE"
        value="$(find aubo_driver)/rosconsole.conf"/> -->
 
@@ -7,6 +10,8 @@
     <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml" />
     <rosparam ns="aubo" command="load" file="$(find aubo_driver)/config/aubo.yaml" />
     <rosparam ns="tcp" command="load" file="$(find aubo_driver)/config/tcp.yaml" />
+    <param name="tcp/hostname" value="$(arg hostname)" />
+    <param name="tcp/port" value="$(arg port)" />
     <rosparam ns="login" command="load" file="$(find aubo_driver)/config/login.yaml" />
   </node>
 
