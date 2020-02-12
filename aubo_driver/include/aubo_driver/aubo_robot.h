@@ -147,6 +147,16 @@ public:
 
   void move_track(const control_msgs::JointTrajectoryGoal::ConstPtr &goal);
 
+  /*
+   * Control the movement by using control command */
+  bool move_stop();
+  bool move_stop(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+
+  bool move_pause();
+  bool move_pause(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+
+  bool move_resume();
+  bool move_resume(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   /*
    * Get the joint angles of the manipulator */

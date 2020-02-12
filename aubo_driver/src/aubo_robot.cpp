@@ -458,7 +458,7 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
     sorted_extract(goal->trajectory, i);
 
     error_code = service_interface.robotServiceAddGlobalWayPoint(joint_pos_cmd.data());
-    if (error_code != 0)
+    if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
     {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
       ROS_ERROR("Failed to add trajectory waypoint to the robot.");
@@ -477,9 +477,19 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
   //   return;
   // }
 
+  // error_code = service_interface.robotServiceSetArrivalAheadDistanceMode(0.001);
+  // if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  // {
+  //   ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+  //   ROS_ERROR("Failed to set Arrival Ahead Distance.");
+  //   joint_trajectory_act.setAborted();
+  //   return;
+  // }
+
   // start trajectory execution
-  error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JOINT_UBSPLINEINTP, false);
-  if (error_code != 0)
+  error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JIONT_CUBICSPLINE, false);
+  // error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JOINT_UBSPLINEINTP, false);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     ROS_ERROR("Failed to start executing trajectory.");
@@ -489,6 +499,111 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
 
   ROS_INFO("Started trajectory execution succesfully.");
   joint_trajectory_act.setSucceeded();
+}
+
+
+bool aubo::AuboRobot::move_stop()
+{
+  int error_code;
+
+  error_code = service_interface.rootServiceRobotMoveControl(aubo_robot_namespace::RobotMoveControlCommand::RobotMoveStop);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    ROS_ERROR("Failed to stop trajectory excution.");
+    return false;
+  }
+
+  // joint_trajectory_act.setAborted();
+  ROS_INFO("Trajectory execution stopped.");
+  return true;
+}
+
+
+bool aubo::AuboRobot::move_stop(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+{
+  if (move_stop())
+  {
+    res.success = true;
+    res.message = "Movement stopped.";
+  }
+  else
+  {
+    res.success = false;
+    res.message = "Failed to stop movement.";
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::move_pause()
+{
+  int error_code;
+
+  error_code = service_interface.rootServiceRobotMoveControl(aubo_robot_namespace::RobotMoveControlCommand::RobotMovePause);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    ROS_ERROR("Failed to pause trajectory excution.");
+    return false;
+  }
+
+  // joint_trajectory_act.setAborted();
+  ROS_INFO("Trajectory execution paused.");
+  return true;
+}
+
+
+bool aubo::AuboRobot::move_pause(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+{
+  if (move_pause())
+  {
+    res.success = true;
+    res.message = "Movement paused.";
+  }
+  else
+  {
+    res.success = false;
+    res.message = "Failed to pause movement.";
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::move_resume()
+{
+  int error_code;
+
+  error_code = service_interface.rootServiceRobotMoveControl(aubo_robot_namespace::RobotMoveControlCommand::RobotMoveContinue);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    ROS_ERROR("Failed to continue trajectory excution.");
+    return false;
+  }
+
+  // joint_trajectory_act.setAborted();
+  ROS_INFO("Trajectory execution continue.");
+  return true;
+}
+
+
+bool aubo::AuboRobot::move_resume(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+{
+  if (move_resume())
+  {
+    res.success = true;
+    res.message = "Movement resumed.";
+  }
+  else
+  {
+    res.success = false;
+    res.message = "Failed to resume movement.";
+  }
+
+  return true;
 }
 
 

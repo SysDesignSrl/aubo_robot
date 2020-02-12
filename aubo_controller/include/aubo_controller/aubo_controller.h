@@ -71,65 +71,109 @@ public:
 
 
   /* */
-  void goal_callback(const control_msgs::FollowJointTrajectoryGoal::ConstPtr &goal) {
-
-    //
+  void goal_callback(const control_msgs::FollowJointTrajectoryGoal::ConstPtr &goal)
+  {
+    // goal
     control_msgs::JointTrajectoryGoal joint_trajectory_goal;
     joint_trajectory_goal.trajectory = goal->trajectory;
-    joint_trajectory_acli.sendGoalAndWait(joint_trajectory_goal);
+    // fire and forget
+    auto state = joint_trajectory_acli.sendGoalAndWait(joint_trajectory_goal);
 
-    if (joint_trajectory_acli.getState() != actionlib::SimpleClientGoalState::StateEnum::SUCCEEDED) {
+    if (state == actionlib::SimpleClientGoalState::StateEnum::PENDING)
+    {
+      std::string message = state.getText();
+      ROS_WARN("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "PENDING", message.c_str());
       follow_joint_trajectory_asrv.setAborted();
+      return;
+    }
+    if (state == actionlib::SimpleClientGoalState::StateEnum::ACTIVE)
+    {
+      std::string message = state.getText();
+      ROS_WARN("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "ACTIVE", message.c_str());
+      follow_joint_trajectory_asrv.setAborted();
+      return;
+    }
+    if (state == actionlib::SimpleClientGoalState::StateEnum::PREEMPTED)
+    {
+      std::string message = state.getText();
+      ROS_WARN("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "PREEMPTED", message.c_str());
+      follow_joint_trajectory_asrv.setAborted();
+      return;
+    }
+    if (state == actionlib::SimpleClientGoalState::StateEnum::LOST)
+    {
+      std::string message = state.getText();
+      ROS_WARN("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "LOST", message.c_str());
+      return;
+    }
+    if (state == actionlib::SimpleClientGoalState::StateEnum::REJECTED)
+    {
+      std::string message = state.getText();
+      ROS_WARN("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "REJECTED", message.c_str());
+      return;
+    }
+    if (state == actionlib::SimpleClientGoalState::StateEnum::ABORTED)
+    {
+      std::string message = state.getText();
+      ROS_WARN("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "ABORTED", message.c_str());
+      follow_joint_trajectory_asrv.setAborted();
+      return;
+    }
+    if (state == actionlib::SimpleClientGoalState::StateEnum::SUCCEEDED)
+    {
+      std::string message = state.getText();
+      ROS_INFO("Action '%s' %s: %s", "/aubo_driver/joint_trajectory", "SUCCEDED", message.c_str());
     }
 
     // the trajectory is started
     ros::Time start_time = ros::Time::now();
 
-    for (int i = 0; i < goal->trajectory.points.size(); i++) {
-
+    for (int i = 0; i < goal->trajectory.points.size(); i++)
+    {
       ros::Time now = ros::Time::now();
       ros::Time trajectory_time = start_time + goal->trajectory.points[i].time_from_start;
 
       // sleep
       (trajectory_time - now).sleep();
 
+      int n_joints = joint_state.name.size();
 
-      std::vector<double> joint_pos_cmd, joint_pos_cur, joint_pos_err;
-      std::vector<double> joint_vel_cmd, joint_vel_cur, joint_vel_err;
+      std::vector<double> j_pos_cmd, j_pos, j_pos_err;
+      std::vector<double> j_vel_cmd, j_vel, j_vel_err;
 
-      joint_pos_cmd.resize(joint_state.name.size());
-      joint_pos_cur.resize(joint_state.name.size());
-      joint_pos_err.resize(joint_state.name.size());
+      j_pos.resize(n_joints);
+      j_pos_cmd.resize(n_joints);
+      j_pos_err.resize(n_joints);
 
-      joint_vel_cmd.resize(joint_state.name.size());
-      joint_vel_cur.resize(joint_state.name.size());
-      joint_vel_err.resize(joint_state.name.size());
+      j_vel.resize(n_joints);
+      j_vel_cmd.resize(n_joints);
+      j_vel_err.resize(n_joints);
 
       auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
       {
-        for (int i=0; i < joint_state.name.size(); i++)
+        for (int i=0; i < n_joints; i++)
           for (int j=0; j < trajectory.joint_names.size(); j++)
             if (joint_state.name[i] == trajectory.joint_names[j])
             {
-              joint_pos_cmd[i] = trajectory.points[index].positions[j];
-              joint_vel_cmd[i] = trajectory.points[index].velocities[j];
+              j_pos_cmd[i] = trajectory.points[index].positions[j];
+              j_vel_cmd[i] = trajectory.points[index].velocities[j];
             }
       };
 
       // sort joint trajectory position command
       sorted_extract(goal->trajectory, i);
       // copy the current joint position state
-      std::copy(joint_state.position.cbegin(), joint_state.position.cend(), joint_pos_cur.begin());
+      std::copy(joint_state.position.cbegin(), joint_state.position.cend(), j_pos.begin());
       // compute the position error
-      std::transform(joint_pos_cmd.cbegin(), joint_pos_cmd.cend(), joint_pos_cur.cbegin(), joint_pos_err.begin(), std::minus<double>());
+      std::transform(j_pos_cmd.cbegin(), j_pos_cmd.cend(), j_pos.cbegin(), j_pos_err.begin(), std::minus<double>());
 
 
       control_msgs::FollowJointTrajectoryFeedback feedback;
       feedback.header.stamp = start_time + goal->trajectory.points[i].time_from_start;
       feedback.joint_names = joint_state.name;
-      feedback.desired.positions = joint_pos_cmd;
-      feedback.actual.positions = joint_pos_cur;
-      feedback.error.positions = joint_pos_err;
+      feedback.desired.positions = j_pos_cmd;
+      feedback.actual.positions = j_pos;
+      feedback.error.positions = j_pos_err;
       follow_joint_trajectory_asrv.publishFeedback(feedback);
     }
 
