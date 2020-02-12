@@ -436,26 +436,21 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
   j_vel_cmd.resize(n_joints);
   j_acc_cmd.resize(n_joints);
 
-  auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
+  // add trajectory waypoints
+  for (const trajectory_msgs::JointTrajectoryPoint &trajectory_pt: goal->trajectory.points)
   {
-    for (int i=0; i < n_joints; i++)
+    for (int i = 0; i < n_joints; i++)
     {
-      for (int j=0; j < trajectory.joint_names.size(); j++)
+      for (int j = 0; j < goal->trajectory.joint_names.size(); j++)
       {
-        if (joint_names[i] == trajectory.joint_names[j])
+        if (joint_names[i] == goal->trajectory.joint_names[j])
         {
-          j_pos_cmd[i] = trajectory.points[index].positions[j];
-          j_vel_cmd[i] = trajectory.points[index].velocities[j];
-          j_acc_cmd[i] = trajectory.points[index].accelerations[j];
+          j_pos_cmd[i] = trajectory_pt.positions[j];
+          j_vel_cmd[i] = trajectory_pt.velocities[j];
+          j_acc_cmd[i] = trajectory_pt.accelerations[j];
         }
       }
     }
-  };
-
-  // add trajectory waypoints
-  for (int i = 0; i < goal->trajectory.points.size(); i++)
-  {
-    sorted_extract(goal->trajectory, i);
 
     error_code = service_interface.robotServiceAddGlobalWayPoint(j_pos_cmd.data());
     if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
@@ -466,25 +461,6 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
       return;
     }
   }
-
-  // set blend rodius
-  // error_code = service_interface.robotServiceSetGlobalBlendRadius(blend_radius);
-  // if (error_code != 0)
-  // {
-  //   ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-  //   ROS_ERROR("Failed to set blend radius to: %.2f", blend_radius);
-  //   joint_trajectory_act.setAborted();
-  //   return;
-  // }
-
-  // error_code = service_interface.robotServiceSetArrivalAheadDistanceMode(0.001);
-  // if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
-  // {
-  //   ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-  //   ROS_ERROR("Failed to set Arrival Ahead Distance.");
-  //   joint_trajectory_act.setAborted();
-  //   return;
-  // }
 
   // start trajectory execution
   error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JIONT_CUBICSPLINE, true);

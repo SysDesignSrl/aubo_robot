@@ -3,6 +3,8 @@
 
   <!-- <include file="$(find aubo_driver)/launch/aubo_driver.launch"/> -->
 
-  <node name="aubo_controller" pkg="aubo_controller" type="aubo_controller" output="screen"/>
+  <node name="aubo_controller" pkg="aubo_controller" type="aubo_controller" output="screen">
+    <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml"/>
+  </node>
 
 </launch>
