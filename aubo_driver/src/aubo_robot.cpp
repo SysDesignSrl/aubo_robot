@@ -390,7 +390,7 @@ bool aubo::AuboRobot::move_joint(const std::vector<double> &joint_pos)
   std::copy(joint_pos.cbegin(), joint_pos.cend(), jointAngle);
 
   error_code = service_interface.robotServiceJointMove(jointAngle, false);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -408,7 +408,7 @@ bool aubo::AuboRobot::move_line(const std::vector<double> &joint_pos)
   std::copy(joint_pos.cbegin(), joint_pos.cend(), jointAngle);
 
   error_code = service_interface.robotServiceLineMove(jointAngle, false);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -428,40 +428,40 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
   //
   int n_joints = joint_names.size();
 
+  std::vector<double> j_pos_cmd;
+  std::vector<double> j_vel_cmd;
+  std::vector<double> j_acc_cmd;
+
+  j_pos_cmd.resize(n_joints);
+  j_vel_cmd.resize(n_joints);
+  j_acc_cmd.resize(n_joints);
+
+  auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
+  {
+    for (int i=0; i < n_joints; i++)
+    {
+      for (int j=0; j < trajectory.joint_names.size(); j++)
+      {
+        if (joint_names[i] == trajectory.joint_names[j])
+        {
+          j_pos_cmd[i] = trajectory.points[index].positions[j];
+          j_vel_cmd[i] = trajectory.points[index].velocities[j];
+          j_acc_cmd[i] = trajectory.points[index].accelerations[j];
+        }
+      }
+    }
+  };
+
   // add trajectory waypoints
   for (int i = 0; i < goal->trajectory.points.size(); i++)
   {
-    std::vector<double> joint_pos_cmd;
-    std::vector<double> joint_vel_cmd;
-    std::vector<double> joint_acc_cmd;
-
-    auto sorted_extract = [&] (const trajectory_msgs::JointTrajectory &trajectory, int index)
-    {
-      joint_pos_cmd.resize(n_joints);
-      joint_vel_cmd.resize(n_joints);
-      joint_acc_cmd.resize(n_joints);
-
-      for (int i=0; i < n_joints; i++)
-      {
-        for (int j=0; j < trajectory.joint_names.size(); j++)
-        {
-          if (joint_names[i] == trajectory.joint_names[j])
-          {
-            joint_pos_cmd[i] = trajectory.points[index].positions[j];
-            joint_vel_cmd[i] = trajectory.points[index].velocities[j];
-            joint_acc_cmd[i] = trajectory.points[index].accelerations[j];
-          }
-        }
-      }
-    };
-
     sorted_extract(goal->trajectory, i);
 
-    error_code = service_interface.robotServiceAddGlobalWayPoint(joint_pos_cmd.data());
+    error_code = service_interface.robotServiceAddGlobalWayPoint(j_pos_cmd.data());
     if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
     {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-      ROS_ERROR("Failed to add trajectory waypoint to the robot.");
+      ROS_ERROR("Failed to add trajectory waypoint to robot controller.");
       joint_trajectory_act.setAborted();
       return;
     }
@@ -487,17 +487,17 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
   // }
 
   // start trajectory execution
-  error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JIONT_CUBICSPLINE, false);
+  error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JIONT_CUBICSPLINE, true);
   // error_code = service_interface.robotServiceTrackMove(aubo_robot_namespace::move_track::JOINT_UBSPLINEINTP, false);
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to start executing trajectory.");
+    ROS_ERROR("Failed to execute trajectory.");
     joint_trajectory_act.setAborted();
     return;
   }
 
-  ROS_INFO("Started trajectory execution succesfully.");
+  ROS_INFO("Trajectory executed succesfully.");
   joint_trajectory_act.setSucceeded();
 }
 
