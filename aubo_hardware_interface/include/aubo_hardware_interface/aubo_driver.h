@@ -234,7 +234,6 @@ public:
   {
     int error_code;
 
-    aubo_robot_namespace::RobotDiagnosis robotDiagnosis;
     error_code = service_interface.robotServiceGetRobotDiagnosisInfo(robotDiagnosis);
     if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
     {

@@ -169,6 +169,13 @@ public:
     ROS_DEBUG("Goal time tolerance: %.1fs", time_tol.toSec());
     time_tol.sleep();
 
+
+    while (!joint_trajectory_acli.waitForResult(ros::Duration(1.0)))
+    {
+      ROS_WARN("Waiting trajectory to complete...");
+    }
+
+
     // check goal tolerances
     if (!check_goal_tolerance(goal->goal_tolerance))
     {
