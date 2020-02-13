@@ -719,12 +719,12 @@ bool aubo::AuboRobot::print_diagnostic_info(std_srvs::EmptyRequest &req, std_srv
 }
 
 
-bool aubo::AuboRobot::register_waipoint_callback(RealTimeRoadPointCallback ptr, void *arg)
+bool aubo::AuboRobot::register_realtime_waypoint(RealTimeRoadPointCallback waypoint_cb, void *arg)
 {
   int error_code;
 
-  error_code = service_interface.robotServiceRegisterRealTimeRoadPointCallback(ptr, arg);
-  if (error_code != 0)
+  error_code = service_interface.robotServiceRegisterRealTimeRoadPointCallback(waypoint_cb, arg);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -734,12 +734,12 @@ bool aubo::AuboRobot::register_waipoint_callback(RealTimeRoadPointCallback ptr, 
 }
 
 
-bool aubo::AuboRobot::register_event_info(RobotEventCallback ptr, void *arg)
+bool aubo::AuboRobot::register_event_info(RobotEventCallback event_cb, void *arg)
 {
   int error_code;
 
-  error_code = service_interface.robotServiceRegisterRobotEventInfoCallback(ptr, arg);
-  if (error_code != 0)
+  error_code = service_interface.robotServiceRegisterRobotEventInfoCallback(event_cb, arg);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -749,7 +749,7 @@ bool aubo::AuboRobot::register_event_info(RobotEventCallback ptr, void *arg)
 }
 
 
-void aubo::AuboRobot::real_time_waypoint_callback(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg)
+void aubo::AuboRobot::realtime_waypoint_cb(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg)
 {
   std::vector<double> joint_pos(aubo_robot_namespace::ARM_DOF);
   std::copy(wayPoint->jointpos, wayPoint->jointpos + aubo_robot_namespace::ARM_DOF, joint_pos.begin());

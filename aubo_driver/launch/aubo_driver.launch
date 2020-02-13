@@ -5,13 +5,12 @@
   <arg name="port" default="8899"/>
 
   <node name="aubo_driver" pkg="aubo_driver" type="aubo_driver" output="screen">
-    <param name="publish_frequency" value="50" />
-    <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml" />
-    <rosparam ns="aubo" command="load" file="$(find aubo_driver)/config/aubo.yaml" />
-    <rosparam ns="tcp" command="load" file="$(find aubo_driver)/config/tcp.yaml" />
-    <param name="tcp/hostname" value="$(arg hostname)" />
-    <param name="tcp/port" value="$(arg port)" />
-    <rosparam ns="login" command="load" file="$(find aubo_driver)/config/login.yaml" />
+    <rosparam command="load" file="$(find aubo_driver)/config/joint_names.yaml"/>
+    <rosparam ns="aubo" command="load" file="$(find aubo_driver)/config/aubo.yaml"/>
+    <rosparam ns="tcp" command="load" file="$(find aubo_driver)/config/tcp.yaml"/>
+    <param name="tcp/hostname" value="$(arg hostname)"/>
+    <param name="tcp/port" value="$(arg port)"/>
+    <rosparam ns="login" command="load" file="$(find aubo_driver)/config/login.yaml"/>
   </node>
 
 </launch>

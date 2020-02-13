@@ -191,7 +191,7 @@ public:
  * After registering the callback function, the server pushes the current waypoint
  * information in real time. */
 
- bool register_waipoint_callback(RealTimeRoadPointCallback ptr, void *arg);
+ bool register_realtime_waypoint(RealTimeRoadPointCallback waypoint_cb, void *arg);
 
 /* Registers the callback function for obtaining the event information of the manipulator.
  * After registering the callback function, the server pushes the event information in real time.
@@ -200,11 +200,12 @@ public:
  * important notifications of the manipulator are implemented by pushing event information.
  * So, the event information is the system default push, not allowed to cancel. */
 
-  bool register_event_info(RobotEventCallback ptr, void *arg);
+  bool register_event_info(RobotEventCallback event_cb, void *arg);
+
 
   /*
    * Define the function pointer for the waypoint information push */
-  void real_time_waypoint_callback(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg);
+  void realtime_waypoint_cb(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg);
 
 };
 
