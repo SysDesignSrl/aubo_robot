@@ -11,6 +11,7 @@
 // actionlib
 #include <actionlib/server/simple_action_server.h>
 // std_srvs
+#include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
 // sensor_msgs
 #include <sensor_msgs/JointState.h>
@@ -47,6 +48,8 @@ private:
   ros::ServiceServer stop_movement_srv;
   ros::ServiceServer pause_movement_srv;
   ros::ServiceServer resume_movement_srv;
+
+  ros::ServiceServer print_diagnostic_srv;
 
   ros::Publisher joint_state_pub;
 
@@ -170,6 +173,7 @@ public:
   /*
    * Get the diagnostic information of the manipulator */
   void print_diagnostic_info();
+  bool print_diagnostic_info(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res);
 
 
 /** Real-time manipulator information push module **/

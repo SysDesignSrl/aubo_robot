@@ -5,7 +5,7 @@
 
 bool aubo::AuboRobot::init()
 {
-  // init parameters
+  // Parameters
   if (!node.getParam("joint_names", joint_names))
   {
     ROS_FATAL("Failed to get parameter: '%s'", "joint_names");
@@ -15,18 +15,21 @@ bool aubo::AuboRobot::init()
   collision_class = node.param<int>("aubo/collision_class", 6);
   blend_radius = node.param<double>("aubo/blend_radius", 0.02);
 
-
-  // init provided services
+  // Services
   login_srv = node.advertiseService("login", &aubo::AuboRobot::login, this);
   logout_srv = node.advertiseService("logout", &aubo::AuboRobot::logout, this);
+
   robot_startup_srv = node.advertiseService("robot_startup", &aubo::AuboRobot::robot_startup, this);
   robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo::AuboRobot::robot_shutdown, this);
+
   init_profile_srv = node.advertiseService("init_profile", &aubo::AuboRobot::init_profile, this);
 
-  // init published topics
+  print_diagnostic_srv = node.advertiseService("print_diagnostic_info", &aubo::AuboRobot::print_diagnostic_info, this);
+
+  // Topics
   joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 100);
 
-  // start action server
+  // Actions
   joint_trajectory_act.start();
   return true;
 }
@@ -634,42 +637,85 @@ void aubo::AuboRobot::print_diagnostic_info()
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to get Robot Diagnosis Info.");
+    ROS_ERROR("Failed to get Robot Diagnostic Info.");
     return;
   }
 
-  std::stringstream ss;
-  ss << " Arm CAN Bus Status: " << robotDiagnosis.armCanbusStatus << std::endl;
-  ss << " Arm Power Current: " << robotDiagnosis.armPowerCurrent << std::endl;
-  ss << " Arm Power Voltage: " << robotDiagnosis.armPowerVoltage << std::endl;
-  ss << " Arm Power Status: " << robotDiagnosis.armPowerStatus << std::endl;
-  ss << " Controller Temperature: " << robotDiagnosis.contorllerTemp << std::endl;
-  ss << " Controller Humidity: " << robotDiagnosis.contorllerHumidity << std::endl;
-  ss << " Remote Halt: " << robotDiagnosis.remoteHalt << std::endl;
-  ss << " Soft Emergency: " << robotDiagnosis.softEmergency << std::endl;
-  ss << " Remote Emergency: " << robotDiagnosis.remoteEmergency << std::endl;
-  ss << " Force Control Mode: " << robotDiagnosis.forceControlMode << std::endl;
-  ss << " Brake Status: " << robotDiagnosis.brakeStuats << std::endl;
-  ss << " Robot End Speed: " << robotDiagnosis.robotEndSpeed << std::endl;
-  ss << " Robot Max Acceleration: " << robotDiagnosis.robotMaxAcc << std::endl;
-  ss << " ORPE (Software) Status: " << robotDiagnosis.orpeStatus << std::endl;
-  ss << " Enable Read Pose: " << robotDiagnosis.enableReadPose << std::endl;
-  ss << " Robot Mounting Pose Changed: " << robotDiagnosis.robotMountingPoseChanged << std::endl;
-  ss << " Encoder Error Status: " << robotDiagnosis.encoderErrorStatus << std::endl;
-  ss << " Static Collision Detect: " << robotDiagnosis.staticCollisionDetect << std::endl;
-  ss << " Joint Collision Detect: " << robotDiagnosis.jointCollisionDetect << std::endl;
-  ss << " Encoder Lines Error: " << robotDiagnosis.encoderLinesError << std::endl;
-  ss << " Joint Error Status: " << robotDiagnosis.jointErrorStatus << std::endl;
-  ss << " Singularity Overspeed Alarm: " << robotDiagnosis.singularityOverSpeedAlarm << std::endl;
-  ss << " Robot Current Alarm: " << robotDiagnosis.robotCurrentAlarm << std::endl;
-  ss << " Tool IO Error: " << robotDiagnosis.toolIoError << std::endl;
-  ss << " Robot Mounting Pose Warning: " << robotDiagnosis.robotMountingPoseWarning << std::endl;
-  ss << " MAC Target Pos Buffer Size: " << robotDiagnosis.macTargetPosBufferSize << std::endl;
-  ss << " MAC Target Pos Data Size: " << robotDiagnosis.macTargetPosDataSize << std::endl;
-  ss << " MAC Data Interrupt Warning: " << robotDiagnosis.macDataInterruptWarning << std::endl;
+  ROS_INFO("AUBO Robot Diagnostic Info:");
 
-  std::cout << "AUBO Robot Diagnostic Info:\n" << ss.str();
-  //ROS_DEBUG_STREAM("AUBO Robot Diagnostic Info:\n" << ss.str());
+  ROS_INFO_COND(robotDiagnosis.armCanbusStatus == 0x00, "\tArm CAN Bus Status: 0x%.2X ", robotDiagnosis.armCanbusStatus);
+  ROS_WARN_COND(robotDiagnosis.armCanbusStatus != 0x00, "\tArm CAN Bus Status: 0x%.2X ", robotDiagnosis.armCanbusStatus);
+
+  ROS_INFO("\tArm Power Current: %.1fA", robotDiagnosis.armPowerCurrent);
+  ROS_INFO("\tArm Power Voltage: %.1fV", robotDiagnosis.armPowerVoltage);
+  ROS_INFO("\tArm Power Status: %s", (robotDiagnosis.armPowerStatus) ? "On" : "Off");
+
+  ROS_INFO("\tController Temperature: %d°", robotDiagnosis.contorllerTemp);
+  ROS_INFO("\tController Humidity: %d%%", robotDiagnosis.contorllerHumidity);
+
+  ROS_INFO_COND(!robotDiagnosis.remoteHalt, "\tRemote Halt: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.remoteHalt, "\tRemote Halt: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.softEmergency, "\tSoft Emergency: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.softEmergency, "\tSoft Emergency: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.remoteEmergency, "\tRemote Emergency: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.remoteEmergency, "\tRemote Emergency: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.robotCollision, "\tRobot Collision: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.robotCollision, "\tRobot Collision: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.forceControlMode, "\tForce Control Mode: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.forceControlMode, "\tForce Control Mode: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.brakeStuats, "\tBrake Status: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.brakeStuats, "\tBrake Status: %s", "On");
+
+  ROS_INFO("\tRobot End Speed: %.1f [m/s]", robotDiagnosis.robotEndSpeed);
+  ROS_INFO("\tRobot Max Acceleration: %d [m/s^2]", robotDiagnosis.robotMaxAcc);
+  ROS_INFO("\tORPE (Software) Status: %s", (robotDiagnosis.orpeStatus) ? "On" : "Off");
+  ROS_INFO("\tEnable Read Pose: %s", (robotDiagnosis.enableReadPose) ? "On" : "Off");
+  ROS_INFO("\tRobot Mounting Pose Changed: %s", (robotDiagnosis.robotMountingPoseChanged) ? "On" : "Off");
+
+  ROS_INFO_COND(!robotDiagnosis.encoderErrorStatus, "\tEncoder Error Status: %s", "Off");
+  ROS_ERROR_COND(robotDiagnosis.encoderErrorStatus, "\tEncoder Error Status: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.staticCollisionDetect, "\tStatic Collision Detect: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.staticCollisionDetect, "\tStatic Collision Detect: %s", "On");
+
+  ROS_INFO_COND(robotDiagnosis.jointCollisionDetect == 0x00, "\tJoint Collision Detect: 0x%.2x", robotDiagnosis.jointCollisionDetect);
+  ROS_WARN_COND(robotDiagnosis.jointCollisionDetect != 0x00, "\tJoint Collision Detect: 0x%.2x", robotDiagnosis.jointCollisionDetect);
+
+  ROS_INFO_COND(!robotDiagnosis.encoderLinesError, "\tEncoder Lines Error: %s", "Off");
+  ROS_ERROR_COND(robotDiagnosis.encoderLinesError, "\tEncoder Lines Error: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.jointErrorStatus, "\tJoint Error Status: %s", "Off");
+  ROS_ERROR_COND(robotDiagnosis.jointErrorStatus, "\tJoint Error Status: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.singularityOverSpeedAlarm, "\tSingularity Overspeed Alarm: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.singularityOverSpeedAlarm, "\tSingularity Overspeed Alarm: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.robotCurrentAlarm, "\tRobot Current Alarm: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.robotCurrentAlarm, "\tRobot Current Alarm: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.toolIoError, "\tTool IO Error: %s", "Off");
+  ROS_ERROR_COND(robotDiagnosis.toolIoError, "\tTool IO Error: %s", "On");
+
+  ROS_INFO_COND(!robotDiagnosis.robotMountingPoseWarning, "\tRobot Mounting Pose Warning: %s", "Off");
+  ROS_WARN_COND(robotDiagnosis.robotMountingPoseWarning, "\tRobot Mounting Pose Warning: %s", "On");
+
+  ROS_INFO("\tMAC Target Pos Buffer Size: %d", robotDiagnosis.macTargetPosBufferSize);
+  ROS_INFO("\tMAC Target Pos Data Size: %d", robotDiagnosis.macTargetPosDataSize);
+
+  ROS_INFO_COND(robotDiagnosis.macDataInterruptWarning == 0x00, "\tMAC Data Interrupt Warning: 0x%.2x", robotDiagnosis.macDataInterruptWarning);
+  ROS_WARN_COND(robotDiagnosis.macDataInterruptWarning != 0x00, "\tMAC Data Interrupt Warning: 0x%.2x", robotDiagnosis.macDataInterruptWarning);
+}
+
+
+bool aubo::AuboRobot::print_diagnostic_info(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res)
+{
+  print_diagnostic_info();
+  return true;
 }
 
 
