@@ -216,11 +216,24 @@ public:
       return;
     }
 
+    if (aubo_driver.get_robot_diagnostic_info())
+    {
+      ROS_ERROR_THROTTLE(1.0, "Failed to get robot diagnostic info!");
+    }
+
+    uint16 buffer_max_size = aubo_driver.robotDiagnosis.macTargetPosBufferSize;
+    uint16 buffer_size = aubo_driver.robotDiagnosis.macTargetPosDataSize;
+    uint8 buffer_warning = aubo_driver.robotDiagnosis.macDataInterruptWarning;
+
+    ROS_DEBUG_THROTTLE(1.0, "CAN buffer max size: %d", buffer_max_size);
+    ROS_DEBUG_THROTTLE(1.0, "CAN buffer size: %d", buffer_size);
+    ROS_DEBUG_THROTTLE(1.0, "CAN buffer Warining: %d", buffer_warning);
+
+
     if (!aubo_driver.write(j_pos_cmd))
     {
       ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
     }
-    // ROS_DEBUG("j_pos_cmd: [ %f %f %f %f %f %f ]", j_pos_cmd[0], j_pos_cmd[1], j_pos_cmd[2], j_pos_cmd[3], j_pos_cmd[4], j_pos_cmd[5]);
   }
 
 };

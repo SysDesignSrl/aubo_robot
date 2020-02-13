@@ -631,7 +631,7 @@ void aubo::AuboRobot::print_diagnostic_info()
 
   aubo_robot_namespace::RobotDiagnosis robotDiagnosis;
   error_code = service_interface.robotServiceGetRobotDiagnosisInfo(robotDiagnosis);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     ROS_ERROR("Failed to get Robot Diagnosis Info.");

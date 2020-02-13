@@ -18,6 +18,8 @@ private:
   ServiceInterface service_interface;
 
 public:
+  aubo_robot_namespace::RobotDiagnosis robotDiagnosis;    // Robot Diagnostic
+
 
   bool login(std::string hostname, unsigned int port, std::string username = "AUBO", std::string password = "123456")
   {
@@ -219,6 +221,21 @@ public:
     std::copy(joint_pos.cbegin(), joint_pos.cend(), jointAngle);
 
     error_code = service_interface.robotServiceSetRobotPosData2Canbus(jointAngle);
+    if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+
+  bool get_robot_diagnostic_info()
+  {
+    int error_code;
+
+    aubo_robot_namespace::RobotDiagnosis robotDiagnosis;
+    error_code = service_interface.robotServiceGetRobotDiagnosisInfo(robotDiagnosis);
     if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
     {
       return false;
