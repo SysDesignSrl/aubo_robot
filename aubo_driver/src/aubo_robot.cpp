@@ -3,38 +3,6 @@
 #include "aubo_driver/error_codes.h"
 
 
-bool aubo::AuboRobot::init()
-{
-  // Parameters
-  if (!node.getParam("joint_names", joint_names))
-  {
-    ROS_FATAL("Failed to get parameter: '%s'", "joint_names");
-    return false;
-  }
-
-  collision_class = node.param<int>("aubo/collision_class", 6);
-  blend_radius = node.param<double>("aubo/blend_radius", 0.02);
-
-  // Services
-  login_srv = node.advertiseService("login", &aubo::AuboRobot::login, this);
-  logout_srv = node.advertiseService("logout", &aubo::AuboRobot::logout, this);
-
-  robot_startup_srv = node.advertiseService("robot_startup", &aubo::AuboRobot::robot_startup, this);
-  robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo::AuboRobot::robot_shutdown, this);
-
-  init_profile_srv = node.advertiseService("init_profile", &aubo::AuboRobot::init_profile, this);
-
-  print_diagnostic_srv = node.advertiseService("print_diagnostic_info", &aubo::AuboRobot::print_diagnostic_info, this);
-
-  // Topics
-  joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 100);
-
-  // Actions
-  joint_trajectory_act.start();
-  return true;
-}
-
-
 bool aubo::AuboRobot::login(std::string username, std::string password)
 {
   int error_code;
@@ -592,7 +560,7 @@ bool aubo::AuboRobot::get_joint_angle(std::vector<double> &joint_pos)
 
   aubo_robot_namespace::JointParam jointParam;
   error_code = service_interface.robotServiceGetJointAngleInfo(jointParam);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -610,7 +578,7 @@ void aubo::AuboRobot::get_current_waypoint()
 
   aubo_robot_namespace::wayPoint_S wayPoint;
   error_code = service_interface.robotServiceGetCurrentWaypointInfo(wayPoint);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     ROS_ERROR("Failed to get current waypoint.");
@@ -759,4 +727,208 @@ void aubo::AuboRobot::realtime_waypoint_cb(const aubo_robot_namespace::wayPoint_
   joint_state.name = joint_names;
   joint_state.position = joint_pos;
   joint_state_pub.publish(joint_state);
+}
+
+
+bool aubo::AuboRobot::get_digital_input(int addr, bool &value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserDI;
+
+  double ioValue;
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, addr, ioValue);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  value = (ioValue > 0.0) ? true : false;
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_digital_input(std::string name, bool &value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserDI;
+
+  double ioValue;
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, name, ioValue);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  value = (ioValue > 0.0) ? true : false;
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_digital_inputs(std::vector<bool> &digital_inputs)
+{
+  int error_code;
+
+  std::vector<aubo_robot_namespace::RobotIoType> ioType;
+  std::vector<aubo_robot_namespace::RobotIoDesc> statusVector;
+
+  ioType.push_back(aubo_robot_namespace::RobotIoType::RobotBoardUserDI);
+
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, statusVector);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  //
+  for (int i = 0; i < statusVector.size(); i++)
+  {
+    char* name = statusVector[i].ioName;
+    int addr = statusVector[i].ioAddr;
+    double val = statusVector[i].ioValue;
+
+    ROS_DEBUG("%s, %d: %f", name, addr, val);
+    digital_inputs.push_back((val > 0.0) ? true : false);
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::set_digital_output(int addr, bool value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserDO;
+
+  error_code = service_interface.robotServiceSetBoardIOStatus(ioType, addr, (value) ? 1.0 : 0.0);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::set_digital_output(std::string name, bool value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserDO;
+
+  error_code = service_interface.robotServiceSetBoardIOStatus(ioType, name, (value) ? 1.0 : 0.0);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_analog_input(int addr, double &value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserAI;
+
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, addr, value);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_analog_input(std::string name, double &value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserAI;
+
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, name, value);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_analog_inputs(std::vector<double> &analog_inputs)
+{
+  int error_code;
+
+  std::vector<aubo_robot_namespace::RobotIoType> ioType;
+  std::vector<aubo_robot_namespace::RobotIoDesc> statusVector;
+
+  ioType.push_back(aubo_robot_namespace::RobotIoType::RobotBoardUserAI);
+
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, statusVector);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  //
+  for (int i = 0; i < statusVector.size(); i++)
+  {
+    char* name = statusVector[i].ioName;
+    int addr = statusVector[i].ioAddr;
+    double val = statusVector[i].ioValue;
+    
+    ROS_DEBUG("%s, %d: %f", name, addr, val);
+    analog_inputs.push_back(val);
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::set_analog_output(int addr, double value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserAO;
+
+  error_code = service_interface.robotServiceSetBoardIOStatus(ioType, addr, value);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::set_analog_output(std::string name, double value)
+{
+  int error_code;
+
+  auto ioType = aubo_robot_namespace::RobotIoType::RobotBoardUserAO;
+
+  error_code = service_interface.robotServiceSetBoardIOStatus(ioType, name, value);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
 }
