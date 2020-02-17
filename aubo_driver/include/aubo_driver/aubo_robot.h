@@ -199,28 +199,28 @@ private:
   }
 
 
-  void do_00_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(00, msg->data); }
-  void do_01_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(01, msg->data); }
-  void do_02_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(02, msg->data); }
-  void do_03_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(03, msg->data); }
-  void do_04_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(04, msg->data); }
-  void do_05_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(05, msg->data); }
-  void do_06_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(06, msg->data); }
-  void do_07_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(07, msg->data); }
-  void do_10_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(010, msg->data); }
-  void do_11_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(011, msg->data); }
-  void do_12_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(012, msg->data); }
-  void do_13_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(013, msg->data); }
-  void do_14_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(014, msg->data); }
-  void do_15_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(015, msg->data); }
-  void do_16_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(016, msg->data); }
-  void do_17_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output(017, msg->data); }
+  void do_00_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_00", msg->data); }
+  void do_01_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_01", msg->data); }
+  void do_02_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_02", msg->data); }
+  void do_03_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_03", msg->data); }
+  void do_04_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_04", msg->data); }
+  void do_05_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_05", msg->data); }
+  void do_06_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_06", msg->data); }
+  void do_07_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_07", msg->data); }
+  void do_10_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_10", msg->data); }
+  void do_11_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_11", msg->data); }
+  void do_12_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_12", msg->data); }
+  void do_13_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_13", msg->data); }
+  void do_14_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_14", msg->data); }
+  void do_15_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_15", msg->data); }
+  void do_16_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_16", msg->data); }
+  void do_17_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_17", msg->data); }
 
 
-  void ao_00_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output(00, msg->data); }
-  void ao_01_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output(01, msg->data); }
-  void ao_02_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output(02, msg->data); }
-  void ao_03_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output(03, msg->data); }
+  void ao_00_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO1", msg->data); }
+  void ao_01_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO2", msg->data); }
+  void ao_02_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO3", msg->data); }
+  void ao_03_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO4", msg->data); }
 
 
 public:
