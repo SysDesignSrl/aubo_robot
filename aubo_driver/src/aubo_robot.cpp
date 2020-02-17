@@ -770,37 +770,6 @@ bool aubo::AuboRobot::get_digital_input(std::string name, bool &value)
 }
 
 
-bool aubo::AuboRobot::get_digital_inputs(std::vector<bool> &digital_inputs)
-{
-  int error_code;
-
-  std::vector<aubo_robot_namespace::RobotIoType> ioType;
-  std::vector<aubo_robot_namespace::RobotIoDesc> statusVector;
-
-  ioType.push_back(aubo_robot_namespace::RobotIoType::RobotBoardUserDI);
-
-  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, statusVector);
-  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
-  {
-    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    return false;
-  }
-
-  //
-  for (int i = 0; i < statusVector.size(); i++)
-  {
-    char* name = statusVector[i].ioName;
-    int addr = statusVector[i].ioAddr;
-    double val = statusVector[i].ioValue;
-
-    ROS_DEBUG("%s, %d: %f", name, addr, val);
-    digital_inputs.push_back((val > 0.0) ? true : false);
-  }
-
-  return true;
-}
-
-
 bool aubo::AuboRobot::set_digital_output(int addr, bool value)
 {
   int error_code;
@@ -869,37 +838,6 @@ bool aubo::AuboRobot::get_analog_input(std::string name, double &value)
 }
 
 
-bool aubo::AuboRobot::get_analog_inputs(std::vector<double> &analog_inputs)
-{
-  int error_code;
-
-  std::vector<aubo_robot_namespace::RobotIoType> ioType;
-  std::vector<aubo_robot_namespace::RobotIoDesc> statusVector;
-
-  ioType.push_back(aubo_robot_namespace::RobotIoType::RobotBoardUserAI);
-
-  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, statusVector);
-  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
-  {
-    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    return false;
-  }
-
-  //
-  for (int i = 0; i < statusVector.size(); i++)
-  {
-    char* name = statusVector[i].ioName;
-    int addr = statusVector[i].ioAddr;
-    double val = statusVector[i].ioValue;
-    
-    ROS_DEBUG("%s, %d: %f", name, addr, val);
-    analog_inputs.push_back(val);
-  }
-
-  return true;
-}
-
-
 bool aubo::AuboRobot::set_analog_output(int addr, double value)
 {
   int error_code;
@@ -928,6 +866,68 @@ bool aubo::AuboRobot::set_analog_output(std::string name, double value)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_digital_inputs(std::vector<bool> &digital_inputs)
+{
+  int error_code;
+
+  std::vector<aubo_robot_namespace::RobotIoType> ioType;
+  std::vector<aubo_robot_namespace::RobotIoDesc> statusVector;
+
+  ioType.push_back(aubo_robot_namespace::RobotIoType::RobotBoardUserDI);
+
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, statusVector);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  //
+  for (int i = 0; i < statusVector.size(); i++)
+  {
+    char* name = statusVector[i].ioName;
+    int addr = statusVector[i].ioAddr;
+    double val = statusVector[i].ioValue;
+
+    ROS_DEBUG("%s, %d: %f", name, addr, val);
+    digital_inputs.push_back((val > 0.0) ? true : false);
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_analog_inputs(std::vector<double> &analog_inputs)
+{
+  int error_code;
+
+  std::vector<aubo_robot_namespace::RobotIoType> ioType;
+  std::vector<aubo_robot_namespace::RobotIoDesc> statusVector;
+
+  ioType.push_back(aubo_robot_namespace::RobotIoType::RobotBoardUserAI);
+
+  error_code = service_interface.robotServiceGetBoardIOStatus(ioType, statusVector);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  //
+  for (int i = 0; i < statusVector.size(); i++)
+  {
+    char* name = statusVector[i].ioName;
+    int addr = statusVector[i].ioAddr;
+    double val = statusVector[i].ioValue;
+
+    ROS_DEBUG("%s, %d: %f", name, addr, val);
+    analog_inputs.push_back(val);
   }
 
   return true;
