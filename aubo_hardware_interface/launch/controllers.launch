@@ -5,7 +5,7 @@
   <rosparam command="load" file="$(find aubo_hardware_interface)/config/controllers.yaml" />
 
   <!-- -->
-  <node name="aubo_driver" pkg="aubo_hardware_interface" type="aubo_hardware_interface_node" output="screen">
+  <node name="aubo_driver" pkg="aubo_hardware_interface" type="aubo_hw" output="screen">
     <rosparam ns="tcp" command="load" file="$(find aubo_hardware_interface)/config/tcp.yaml" />
     <rosparam ns="aubo" command="load" file="$(find aubo_hardware_interface)/config/aubo.yaml" />
   </node>
@@ -13,6 +13,6 @@
   <!-- -->
   <node ns="aubo_driver" name="controller_spawner" pkg="controller_manager" type="spawner" output="screen"
     args="/aubo/controller/state
-          /aubo_controller" />
+          /aubo/controller/aubo_controller"/>
 
 </launch>

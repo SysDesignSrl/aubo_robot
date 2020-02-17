@@ -1,6 +1,7 @@
 #ifndef AUBO_HARDWARE_INTERFACE_H
 #define AUBO_HARDWARE_INTERFACE_H
 // STL
+#include <sstream>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -12,16 +13,18 @@
 #include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/joint_command_interface.h>
 // aubo_hardware_interface
-#include "aubo_hardware_interface/aubo_driver.h"
+#include "aubo_hardware_interface/aubo_robot.h"
 
 
 namespace aubo_hardware_interface {
 
 class AuboHW : public hardware_interface::RobotHW {
 private:
-  aubo::AuboDriver aubo_driver;
+  aubo::AuboRobot aubo_robot;
 
   ros::NodeHandle node;
+
+  ros::Timer refresh_cycle;
 
   double loop_hz;
   std::vector<std::string> joint_names;
@@ -39,6 +42,26 @@ public:
   AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) : node(node)
   {
     init();
+
+    ros::Duration period(0.1);
+    refresh_cycle = node.createTimer(period, &aubo_hardware_interface::AuboHW::refresh_cycle_cb, this, false, false);
+  }
+
+
+  void refresh_cycle_cb(const ros::TimerEvent &ev)
+  {
+    if (!aubo_robot.get_robot_diagnostic_info())
+    {
+      ROS_ERROR_THROTTLE(1.0, "Failed to get robot diagnostic info!");
+    }
+
+    auto buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;
+    auto data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;
+    auto data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;
+
+    ROS_DEBUG_THROTTLE(1.0, "CAN buffer size: %d", buffer_size);
+    ROS_DEBUG_THROTTLE(1.0, "CAN data size: %d", data_size);
+    ROS_WARN_COND(data_warning != 0x00, "CAN data Warining: %d", data_warning);
   }
 
 
@@ -85,35 +108,36 @@ public:
   bool init_robot()
   {
     std::vector<double> max_joint_acc;
-    if (!node.getParam("aubo/max_joint_acceleration", max_joint_acc))
+    if (node.getParam("aubo/max_joint_acceleration", max_joint_acc))
     {
-      ROS_ERROR("Failed to retrieve 'max_joint_acceleration' parameter.");
-      return false;
+      aubo_robot.set_max_joint_acceleration(max_joint_acc);
     }
+
     std::vector<double> max_joint_vel;
-    if (!node.getParam("aubo/max_joint_velocity", max_joint_vel))
+    if (node.getParam("aubo/max_joint_velocity", max_joint_vel))
     {
-      ROS_ERROR("Failed to retrieve 'max_joint_velocity' parameter.");
-      return false;
+      aubo_robot.set_max_joint_velocity(max_joint_vel);
     }
 
-    if (!aubo_driver.set_max_joint_acceleration(max_joint_acc))
+    aubo_robot.get_max_joint_acceleration(max_joint_acc);
+    std::stringstream ass;
+    ass << "[ ";
+    for (double val : max_joint_acc)
     {
-      ROS_ERROR("Failed to set max joint acceleration!");
-      return false;
+      ass << val << " ";
     }
+    ass << "] ";
+    ROS_DEBUG_STREAM("max joint acceleration: " << ass.str() << "[rad/s^2]");
 
-    aubo_driver.get_max_joint_acceleration(max_joint_acc);
-    ROS_DEBUG("max joint acc: [ %f %f %f %f %f %f ]", max_joint_acc[0], max_joint_acc[1], max_joint_acc[2], max_joint_acc[3], max_joint_acc[4], max_joint_acc[5]);
-
-    if (!aubo_driver.set_max_joint_velocity(max_joint_vel))
+    aubo_robot.get_max_joint_velocity(max_joint_vel);
+    std::stringstream vss;
+    vss << "[ ";
+    for (double val : max_joint_vel)
     {
-      ROS_ERROR("Failed to set max joint velocity!");
-      return false;
+      vss << val << " ";
     }
-
-    aubo_driver.get_max_joint_velocity(max_joint_vel);
-    ROS_DEBUG("max joint vel: [ %f %f %f %f %f %f ]", max_joint_vel[0], max_joint_vel[1], max_joint_vel[2], max_joint_vel[3], max_joint_vel[4], max_joint_vel[5]);
+    vss << "] ";
+    ROS_DEBUG_STREAM("max joint velocity: " << vss.str() << "[rad/s]");
 
     return true;
   }
@@ -125,18 +149,17 @@ public:
     auto port = node.param<int>("tcp/port", 8899);
 
     // Login
-    if (!aubo_driver.login(hostname, port))
+    if (!aubo_robot.login(hostname, port))
     {
       node.setParam("robot_connected", false);
       ROS_ERROR("Failed to connect to %s:%d", hostname.c_str(), port);
       return false;
     }
 
-    node.setParam("robot_connected", true);
     ROS_INFO("Connected to %s:%d", hostname.c_str(), port);
 
     // Startup
-    if (!aubo_driver.robot_startup())
+    if (!aubo_robot.robot_startup())
     {
       ROS_ERROR("Failed to start up the Robot.");
       return false;
@@ -145,7 +168,7 @@ public:
     ROS_INFO("Robot started up correctly.");
 
     // TCP 2 CANbus
-    if (!aubo_driver.enable_tcp_canbus_mode())
+    if (!aubo_robot.enable_tcp_canbus_mode())
     {
       ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
       return false;
@@ -160,7 +183,9 @@ public:
       return false;
     }
 
+    refresh_cycle.start();
 
+    node.setParam("robot_connected", true);
     return true;
   }
 
@@ -168,7 +193,7 @@ public:
   bool stop()
   {
     // TCP 2 CANbus
-    if (!aubo_driver.disable_tcp_canbus_mode())
+    if (!aubo_robot.disable_tcp_canbus_mode())
     {
       ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
       return false;
@@ -177,7 +202,7 @@ public:
     ROS_INFO("Disabled TCP 2 CANbus Mode.");
 
     // Shutdown
-    if (!aubo_driver.robot_shutdown())
+    if (!aubo_robot.robot_shutdown())
     {
       ROS_ERROR("Failed to shutdown the Robot.");
       return false;
@@ -186,40 +211,26 @@ public:
     ROS_INFO("Robot shutted down correctly.");
 
     // Logout
-    if (!aubo_driver.logout())
+    if (!aubo_robot.logout())
     {
       ROS_ERROR("Failed to log out.");
       return false;
     }
 
-    node.setParam("robot_connected", false);
     ROS_INFO("Logged out.");
 
+    refresh_cycle.stop();
+
+    node.setParam("robot_connected", false);
     return true;
   }
 
 
   void read()
   {
-    if (!aubo_driver.read(j_pos))
+    if (!aubo_robot.read(j_pos))
     {
       ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions from robot!");
-    }
-
-    if (!aubo_driver.get_robot_diagnostic_info())
-    {
-      ROS_ERROR_THROTTLE(1.0, "Failed to get robot diagnostic info!");
-    }
-
-    uint16 buffer_size = aubo_driver.robotDiagnosis.macTargetPosBufferSize;
-    uint16 data_size = aubo_driver.robotDiagnosis.macTargetPosDataSize;
-    uint8 data_warning = aubo_driver.robotDiagnosis.macDataInterruptWarning;
-
-    ROS_DEBUG_THROTTLE(1.0, "CAN buffer size: %d", buffer_size);
-    ROS_DEBUG_THROTTLE(1.0, "CAN data size: %d", data_size);
-    if (data_warning != 0x00)
-    {
-      ROS_WARN_THROTTLE(1.0, "CAN data Warining: %d", data_warning);
     }
   }
 
@@ -231,15 +242,7 @@ public:
       return;
     }
 
-    uint16 buffer_size = aubo_driver.robotDiagnosis.macTargetPosBufferSize;
-    uint16 data_size = aubo_driver.robotDiagnosis.macTargetPosDataSize;
-    if (buffer_size < data_size)
-    {
-      ROS_WARN_THROTTLE(1.0, "CAN buffer overflow!");
-      return;
-    }
-
-    if (!aubo_driver.write(j_pos_cmd))
+    if (!aubo_robot.write(j_pos_cmd))
     {
       ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
     }

@@ -15,16 +15,15 @@ int main(int argc, char* argv[])
   ros::NodeHandle node("~");
 
   // Parameters
-
   double loop_hz;
   if (!node.getParam("/aubo/hardware_interface/loop_hz", loop_hz))
   {
-    ROS_ERROR("Failed to retrieve '/aubo/hardware_interface/loop_hz' parameter.");
+    ROS_ERROR("Parameter '/aubo/hardware_interface/loop_hz' not defined!");
     return 1;
   }
 
 
-  ros::AsyncSpinner spinner(0);
+  ros::AsyncSpinner spinner(2);
   spinner.start();
 
 
