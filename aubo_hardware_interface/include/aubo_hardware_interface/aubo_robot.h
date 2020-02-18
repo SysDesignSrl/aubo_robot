@@ -5,6 +5,11 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+// roscpp
+#include <ros/ros.h>
+#include <ros/console.h>
+//
+#include <XmlRpcValue.h>
 // AUBO SDK
 #include "lib/AuboRobotMetaType.h"
 #include "lib/robot_state.h"

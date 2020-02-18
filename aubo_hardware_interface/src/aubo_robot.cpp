@@ -33,19 +33,28 @@ bool aubo::AuboRobot::robot_startup()
 {
   int error_code;
 
+
   aubo_robot_namespace::ToolDynamicsParam tool_dynamics_param;
-  tool_dynamics_param.positionX = 0.0;
-  tool_dynamics_param.positionY = 0.0;
-  tool_dynamics_param.positionZ = 0.0;
-  tool_dynamics_param.payload = 0.0;
-  tool_dynamics_param.toolInertia.xx = 0.0;
-  tool_dynamics_param.toolInertia.xy = 0.0;
-  tool_dynamics_param.toolInertia.xz = 0.0;
-  tool_dynamics_param.toolInertia.yy = 0.0;
-  tool_dynamics_param.toolInertia.yz = 0.0;
-  tool_dynamics_param.toolInertia.zz = 0.0;
+
+  XmlRpc::XmlRpcValue tool_dynamics;
+  if (ros::param::get("/aubo_driver/aubo/tool_dynamics", tool_dynamics))
+  {
+    tool_dynamics_param.positionX = tool_dynamics["position"]["x"];
+    tool_dynamics_param.positionY = tool_dynamics["position"]["y"];
+    tool_dynamics_param.positionZ = tool_dynamics["position"]["z"];
+    tool_dynamics_param.payload = tool_dynamics["payload"];
+    tool_dynamics_param.toolInertia.xx = tool_dynamics["inertia"]["xx"];
+    tool_dynamics_param.toolInertia.xy = tool_dynamics["inertia"]["xy"];
+    tool_dynamics_param.toolInertia.xz = tool_dynamics["inertia"]["xz"];
+    tool_dynamics_param.toolInertia.yy = tool_dynamics["inertia"]["yy"];
+    tool_dynamics_param.toolInertia.yz = tool_dynamics["inertia"]["yz"];
+    tool_dynamics_param.toolInertia.zz = tool_dynamics["inertia"]["zz"];
+  }
+
 
   int collision_class = 6;
+  ros::param::get("/aubo_driver/aubo/collision_class", collision_class);
+
 
   aubo_robot_namespace::ROBOT_SERVICE_STATE result;
 

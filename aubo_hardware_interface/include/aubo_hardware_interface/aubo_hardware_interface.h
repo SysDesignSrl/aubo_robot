@@ -22,6 +22,10 @@ class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboRobot aubo_robot;
 
+  unsigned int buffer_size;
+  unsigned int data_size;
+  uint8 data_warning;
+
   ros::NodeHandle node;
 
   ros::Timer refresh_cycle;
@@ -43,7 +47,7 @@ public:
   {
     init();
 
-    ros::Duration period(0.1);
+    ros::Duration period(0.05);
     refresh_cycle = node.createTimer(period, &aubo_hardware_interface::AuboHW::refresh_cycle_cb, this, false, false);
   }
 
@@ -55,9 +59,9 @@ public:
       ROS_ERROR_THROTTLE(1.0, "Failed to get robot diagnostic info!");
     }
 
-    auto buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;
-    auto data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;
-    auto data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;
+    buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;
+    data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;
+    data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;
 
     ROS_DEBUG_THROTTLE(1.0, "CAN buffer size: %d", buffer_size);
     ROS_DEBUG_THROTTLE(1.0, "CAN data size: %d", data_size);
@@ -192,6 +196,8 @@ public:
 
   bool stop()
   {
+    refresh_cycle.stop();
+
     // TCP 2 CANbus
     if (!aubo_robot.disable_tcp_canbus_mode())
     {
@@ -219,8 +225,6 @@ public:
 
     ROS_INFO("Logged out.");
 
-    refresh_cycle.stop();
-
     node.setParam("robot_connected", false);
     return true;
   }
@@ -241,6 +245,14 @@ public:
     {
       return;
     }
+
+
+    if (data_size > 100)
+    {
+      ROS_WARN("Skip!");
+      return;
+    }
+
 
     if (!aubo_robot.write(j_pos_cmd))
     {
