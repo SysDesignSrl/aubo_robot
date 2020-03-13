@@ -1,5 +1,5 @@
 <launch>
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find aubo_controller)/rosconsole.conf"/>
+  <!-- <env name="ROSCONSOLE_CONFIG_FILE" value="$(find aubo_controller)/rosconsole.conf"/> -->
 
   <!-- <include file="$(find aubo_driver)/launch/aubo_driver.launch"/> -->
 
