@@ -141,8 +141,7 @@ link_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(aubo_hw src/aubo_hardware_interface_node.cpp
-src/aubo_robot.cpp)
+add_executable(aubo_hw src/aubo_hardware_interface_node.cpp src/aubo_robot.cpp)
 
 link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
@@ -157,8 +156,7 @@ link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(aubo_hw pthread auborobotcontroller
-otgLib ${catkin_LIBRARIES})
+target_link_libraries(aubo_hw pthread auborobotcontroller otgLib ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -167,18 +165,12 @@ otgLib ${catkin_LIBRARIES})
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
-## Mark executable scripts (Python etc.) for installation
-## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-# install(TARGETS ${PROJECT_NAME}_node
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(
+  TARGETS aubo_hw
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
@@ -189,18 +181,21 @@ otgLib ${catkin_LIBRARIES})
 # )
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+install(DIRECTORY config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+install(
+  DIRECTORY lib/lib64/aubocontroller/ lib/lib64/config/ lib/lib64/log4cplus/
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
 
 #############
 ## Testing ##

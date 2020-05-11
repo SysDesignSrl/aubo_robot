@@ -1,7 +1,10 @@
 <launch>
+  <!-- -->
   <arg name="sim" default="false"/>
+  <!-- -->
   <arg name="db" default="false"/>
-  <arg name="db_path" default="$(find rail_moveit_config)/default_warehouse_mongo_db"/>
+  <arg name="db_path" default="$(find aubo_i5_moveit_config)/default_warehouse_mongo_db"/>
+  <!-- -->
   <arg name="rviz" default="false"/>
 
   <!-- The planning and execution components of MoveIt! configured to run -->
@@ -16,7 +19,7 @@
 
   <!-- Launch Drivers -->
   <include file="$(find aubo_driver)/launch/aubo_driver.launch">
-    <arg name="hostname" value="192.168.2.241"/>
+    <arg name="hostname" value="192.168.242.241"/>
     <arg name="port" value="8899"/>
   </include>
 

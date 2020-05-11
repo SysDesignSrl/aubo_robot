@@ -6,13 +6,13 @@
   <!-- World -->
   <link name="world"/>
 
-  <joint name="world_joint" type="fixed">
+  <!-- Arm -->
+  <joint name="base_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <parent link="world"/>
     <child link = "base_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
-  <!-- Arm -->
   <xacro:aubo_i5 prefix=""/>
 
 </robot>

@@ -10,10 +10,13 @@
   <maintainer email="nicola@sysdesign.it">Nicola Conti</maintainer>
 
   <buildtool_depend>catkin</buildtool_depend>
-
+  <!-- -->
   <depend>roscpp</depend>
   <depend>hardware_interface</depend>
   <depend>transmission_interface</depend>
   <depend>controller_manager</depend>
+  <!-- -->
+  <exec_depend>joint_state_controller</exec_depend>
+  <exec_depend>joint_trajectory_controller</exec_depend>
 
 </package>

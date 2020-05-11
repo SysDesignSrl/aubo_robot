@@ -71,7 +71,7 @@ link_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(aubo_driver src/driver_node.cpp src/aubo_robot.cpp)
 
-link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/lib)
+# link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/lib64/aubocontroller)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -84,7 +84,8 @@ link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(aubo_driver pthread auborobotcontroller otgLib ${catkin_LIBRARIES})
+target_link_libraries(aubo_driver pthread libauborobotcontroller.so libotgLib.a
+  ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -104,7 +105,8 @@ target_link_libraries(aubo_driver pthread auborobotcontroller otgLib ${catkin_LI
 install(TARGETS aubo_driver RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ## Mark libraries for installation
-# install(TARGETS ${PROJECT_NAME}
+# install(
+#   TARGETS aubo_driver
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
@@ -118,49 +120,13 @@ install(
 )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(DIRECTORY config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(
+  DIRECTORY config launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
-
-# if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-#         link_directories(${catkin_LIB_DIRS}  lib/lib64 lib/lib64/log4cplus lib/lib64/config lib/lib64/aubocontroller)
-# else()
-#         link_directories(${catkin_LIB_DIRS}  lib/lib32)
-# endif()
-#
-# ## Declare a C++ executable
-# set(${PROJECT_NAME}_SOURCES1
-#     src/driver_node.cpp
-# )
-# set(${PROJECT_NAME}_SOURCES2
-#     src/testIO.cpp
-# )
-# set(${PROJECT_NAME}_SOURCES3
-#     src/testAuboAPI.cpp
-# )
-#
-# add_executable(aubo_driver ${${PROJECT_NAME}_SOURCES1})
-# add_executable(testIO ${${PROJECT_NAME}_SOURCES2})
-# add_executable(testAuboAPI ${${PROJECT_NAME}_SOURCES3})
-# add_executable(aubo_gazebo_driver src/aubo_gazebo_driver.cpp)
-#
-# #LINK_LIBRARIES(${CMAKE_CURRENT_SOURCE_DIR}/lib)
-#
-# target_link_libraries(aubo_driver pthread ${catkin_LIBRARIES} auborobotcontroller otgLib)
-# target_link_libraries(testAuboAPI ${catkin_LIBRARIES} auborobotcontroller otgLib)
-# target_link_libraries(testIO ${catkin_LIBRARIES} otgLib)
-# target_link_libraries(aubo_gazebo_driver ${catkin_LIBRARIES})
-#
-#
-#
-# install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-#
-# ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#    FILES_MATCHING PATTERN "*.h"
-#  )
-#
-# add_dependencies(aubo_driver aubo_msgs_gencpp)
-# add_dependencies(testIO aubo_msgs_gencpp)
-# add_dependencies(testAuboAPI aubo_msgs_gencpp)
+## Mark other files for installation (e.g. launch and bag files, etc.)
+install(
+  DIRECTORY lib/lib64/aubocontroller/ lib/lib64/config/ lib/lib64/log4cplus/
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
