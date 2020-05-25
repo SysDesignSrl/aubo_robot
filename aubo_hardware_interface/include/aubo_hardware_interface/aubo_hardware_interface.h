@@ -22,9 +22,9 @@ class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboRobot aubo_robot;
 
-  unsigned int buffer_size;
-  unsigned int data_size;
-  uint8 data_warning;
+  unsigned int can_buffer_size;
+  unsigned int can_data_size;
+  uint8 can_data_warning;
 
   ros::NodeHandle node;
 
@@ -47,7 +47,7 @@ public:
   {
     init();
 
-    ros::Duration period(0.05);
+    ros::Duration period(1.0);
     refresh_cycle = node.createTimer(period, &aubo_hardware_interface::AuboHW::refresh_cycle_cb, this, false, false);
   }
 
@@ -56,16 +56,16 @@ public:
   {
     if (!aubo_robot.get_robot_diagnostic_info())
     {
-      ROS_ERROR_THROTTLE(1.0, "Failed to get robot diagnostic info!");
+      ROS_WARN("Failed to get robot diagnostic info!");
     }
 
-    buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;
-    data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;
-    data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;
+    can_buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;
+    can_data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;
+    can_data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;
 
-    ROS_DEBUG_THROTTLE(1.0, "CAN buffer size: %d", buffer_size);
-    ROS_DEBUG_THROTTLE(1.0, "CAN data size: %d", data_size);
-    ROS_WARN_COND(data_warning != 0x00, "CAN data Warining: %d", data_warning);
+    ROS_DEBUG_THROTTLE(0.0, "CAN buffer size: %d", can_buffer_size);
+    ROS_DEBUG_THROTTLE(0.0, "CAN data size: %d", can_data_size);
+    ROS_WARN_COND(can_data_warning != 0x00, "CAN data Warining: %d", can_data_warning);
   }
 
 
@@ -241,17 +241,20 @@ public:
 
   void write()
   {
+    //
     if (std::all_of(j_pos_cmd.cbegin(), j_pos_cmd.cend(), [](double value) { return value == 0.0; }))
     {
       return;
     }
 
-
-    if (data_size > 100)
-    {
-      ROS_WARN("Skip!");
-      return;
-    }
+    // Don't send trajectoy command if it's equal to the current joint state to
+    // not overload CANbus buffer.
+    // if (std::equal(j_pos_cmd.cbegin(), j_pos_cmd.cend(), j_pos_cmd_1.cbegin()))
+    // {
+    //   return;
+    // }
+    //
+    // std::copy(j_pos_cmd.cbegin(), j_pos_cmd.cend(), j_pos_cmd_1.begin());
 
 
     if (!aubo_robot.write(j_pos_cmd))
