@@ -15,10 +15,22 @@ int main(int argc, char* argv[])
   ros::NodeHandle node("~");
 
   // Parameters
+  auto host = node.param<std::string>("tcp/host", "localhost");
+  auto port = node.param<int>("tcp/port", 8899);
+
   double loop_hz;
-  if (!node.getParam("/aubo/hardware_interface/loop_hz", loop_hz))
+  if (!node.getParam("hardware_interface/loop_hz", loop_hz))
   {
-    ROS_ERROR("Parameter '/aubo/hardware_interface/loop_hz' not defined!");
+    std::string param_name = node.resolveName("hardware_interface/loop_hz");
+    ROS_ERROR("Failed to retrieve '%s' parameter.", param_name.c_str());
+    return 1;
+  }
+
+  std::vector<std::string> joints;
+  if (!node.getParam("hardware_interface/joints", joints))
+  {
+    std::string param_name = node.resolveName("hardware_interface/joints");
+    ROS_ERROR("Failed to retrieve '%s' parameter.", param_name.c_str());
     return 1;
   }
 
@@ -26,25 +38,29 @@ int main(int argc, char* argv[])
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
-
   // Hardware Interface
   aubo_hardware_interface::AuboHW aubo_hw(node);
-
-  if (!aubo_hw.start())
+  if (!aubo_hw.init(joints))
   {
-    ROS_FATAL("Failed to start Hardware Interface.");
+    ROS_FATAL("Failed to initialize Hardware Interface.");
     return 1;
   }
 
   // Controller Manager
   controller_manager::ControllerManager controller_manager(&aubo_hw, node);
+  if (!aubo_hw.start(host, port))
+  {
+    ROS_FATAL("Failed to start Hardware Interface.");
+    return 1;
+  }
 
 
   ros::Rate rate(loop_hz);
   ros::Time prev_time = ros::Time::now();
-
   while (ros::ok())
   {
+    rate.sleep();
+
     ros::Time curr_time = ros::Time::now();
     ros::Duration period = curr_time - prev_time;
 
@@ -53,7 +69,6 @@ int main(int argc, char* argv[])
     aubo_hw.write();
 
     prev_time = curr_time;
-    rate.sleep();
   }
 
 
@@ -62,7 +77,6 @@ int main(int argc, char* argv[])
     ROS_FATAL("Failed to stop Hardware Interface.");
     return 1;
   }
-
 
   return 0;
 }

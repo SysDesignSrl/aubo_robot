@@ -1,4 +1,30 @@
-aubo:
+########################
+## Hardware Interface ##
+########################
+
+aubo_i3:
+  hardware_interface:
+     loop_hz: 200
+     joints:
+       - shoulder_joint
+       - upperArm_joint
+       - foreArm_joint
+       - wrist1_joint
+       - wrist2_joint
+       - wrist3_joint
+
+aubo_i5:
+  hardware_interface:
+     loop_hz: 200
+     joints:
+       - shoulder_joint
+       - upperArm_joint
+       - foreArm_joint
+       - wrist1_joint
+       - wrist2_joint
+       - wrist3_joint
+
+aubo_i7:
   hardware_interface:
      loop_hz: 200
      joints:

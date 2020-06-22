@@ -22,12 +22,15 @@ class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboRobot aubo_robot;
 
-  unsigned int can_buffer_size;
-  unsigned int can_data_size;
+  // Diagnostinc Info
+  bool robot_collision;
+  bool force_control_mode;
+  uint16 can_buffer_size;
+  uint16 can_data_size;
   uint8 can_data_warning;
 
-  ros::NodeHandle node;
 
+  ros::NodeHandle node;
   ros::Timer refresh_cycle;
 
   double loop_hz;
@@ -45,8 +48,6 @@ public:
 
   AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) : node(node)
   {
-    init();
-
     ros::Duration period(1.0);
     refresh_cycle = node.createTimer(period, &aubo_hardware_interface::AuboHW::refresh_cycle_cb, this, false, false);
   }
@@ -56,34 +57,26 @@ public:
   {
     if (!aubo_robot.get_robot_diagnostic_info())
     {
-      ROS_WARN("Failed to get robot diagnostic info!");
+      ROS_WARN("Failed to retrieve diagnostic info from the robot!");
     }
 
-    can_buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;
-    can_data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;
-    can_data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;
+    robot_collision = aubo_robot.robotDiagnosis.robotCollision;                 // Collision detection flag
+    force_control_mode = aubo_robot.robotDiagnosis.forceControlMode;            // Force Control Mode flag
+    can_buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;         // The maximum size of the CANbus buffer
+    can_data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;             // The current data size of the CANbus buffer
+    can_data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;       // The CANbus buffer data interruption
 
+    ROS_WARN_COND(robot_collision, "Robot collision detected!");
+    ROS_INFO_COND(force_control_mode, "Force Control mode enabled.");
     ROS_DEBUG_THROTTLE(0.0, "CAN buffer size: %d", can_buffer_size);
     ROS_DEBUG_THROTTLE(0.0, "CAN data size: %d", can_data_size);
     ROS_WARN_COND(can_data_warning != 0x00, "CAN data Warining: %d", can_data_warning);
   }
 
 
-  bool init()
+  bool init(const std::vector<std::string> &joints)
   {
-    if (!node.getParam("/aubo/hardware_interface/loop_hz", loop_hz))
-    {
-      ROS_ERROR("Failed to retrieve '/aubo/hardware_interface/loop_hz' parameter.");
-      return false;
-    }
-
-    if (!node.getParam("/aubo/hardware_interface/joints", joint_names))
-    {
-      ROS_ERROR("Failed to retrieve '/aubo/hardware_interface/joints' parameter.");
-      return false;
-    }
-
-    int n_joints = joint_names.size();
+    int n_joints = joints.size();
 
     j_pos.resize(n_joints, 0.0); j_pos_cmd.resize(n_joints, 0.0);
     j_vel.resize(n_joints, 0.0); j_vel_cmd.resize(n_joints, 0.0);
@@ -147,20 +140,17 @@ public:
   }
 
 
-  bool start()
+  bool start(std::string host,  unsigned int port)
   {
-    auto hostname = node.param<std::string>("tcp/hostname", "localhost");
-    auto port = node.param<int>("tcp/port", 8899);
-
     // Login
-    if (!aubo_robot.login(hostname, port))
+    if (!aubo_robot.login(host, port))
     {
       node.setParam("robot_connected", false);
-      ROS_ERROR("Failed to connect to %s:%d", hostname.c_str(), port);
+      ROS_ERROR("Failed to connect to %s:%d", host.c_str(), port);
       return false;
     }
 
-    ROS_INFO("Connected to %s:%d", hostname.c_str(), port);
+    ROS_INFO("Connected to %s:%d", host.c_str(), port);
 
     // Startup
     if (!aubo_robot.robot_startup())

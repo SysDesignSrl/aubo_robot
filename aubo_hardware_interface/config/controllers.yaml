@@ -1,9 +1,43 @@
-aubo:
+#################
+## Controllers ##
+#################
+
+aubo_i3:
   controller:
     state:
       type: joint_state_controller/JointStateController
       publish_rate: 50
-    aubo_controller:
+    arm_controller:
+      type: position_controllers/JointTrajectoryController
+      joints:
+        - shoulder_joint
+        - upperArm_joint
+        - foreArm_joint
+        - wrist1_joint
+        - wrist2_joint
+        - wrist3_joint
+
+aubo_i5:
+  controller:
+    state:
+      type: joint_state_controller/JointStateController
+      publish_rate: 50
+    arm_controller:
+      type: position_controllers/JointTrajectoryController
+      joints:
+        - shoulder_joint
+        - upperArm_joint
+        - foreArm_joint
+        - wrist1_joint
+        - wrist2_joint
+        - wrist3_joint
+
+aubo_i7:
+  controller:
+    state:
+      type: joint_state_controller/JointStateController
+      publish_rate: 50
+    arm_controller:
       type: position_controllers/JointTrajectoryController
       joints:
         - shoulder_joint
