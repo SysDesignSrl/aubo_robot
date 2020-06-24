@@ -117,24 +117,28 @@ public:
     }
 
     aubo_robot.get_max_joint_acceleration(max_joint_acc);
-    std::stringstream ass;
-    ass << "[ ";
-    for (double val : max_joint_acc)
     {
-      ass << val << " ";
+      std::stringstream ss;
+      ss << "[ ";
+      for (double val : max_joint_acc)
+      {
+        ss << val << " ";
+      }
+      ss << "] ";
+      ROS_DEBUG_STREAM("max joint acceleration: " << ss.str() << "[rad/s^2]");
     }
-    ass << "] ";
-    ROS_DEBUG_STREAM("max joint acceleration: " << ass.str() << "[rad/s^2]");
 
     aubo_robot.get_max_joint_velocity(max_joint_vel);
-    std::stringstream vss;
-    vss << "[ ";
-    for (double val : max_joint_vel)
     {
-      vss << val << " ";
+      std::stringstream ss;
+      ss << "[ ";
+      for (double val : max_joint_vel)
+      {
+        ss << val << " ";
+      }
+      ss << "] ";
+      ROS_DEBUG_STREAM("max joint velocity: " << ss.str() << "[rad/s]");
     }
-    vss << "] ";
-    ROS_DEBUG_STREAM("max joint velocity: " << vss.str() << "[rad/s]");
 
     return true;
   }
@@ -220,7 +224,7 @@ public:
   }
 
 
-  void read()
+  void read(const ros::Time &time, const ros::Duration &period)
   {
     if (!aubo_robot.read(j_pos))
     {
@@ -229,7 +233,7 @@ public:
   }
 
 
-  void write()
+  void write(const ros::Time &time, const ros::Duration &period)
   {
     //
     if (std::all_of(j_pos_cmd.cbegin(), j_pos_cmd.cend(), [](double value) { return value == 0.0; }))

@@ -1,8 +1,6 @@
 <launch>
-  <arg name="robot"/>
-  <arg name="gui" default="false"/>
 
-  <param name="robot_description" command="xacro --inorder $(find aubo_description)/urdf/'$(arg robot)_robot.urdf.xacro'"/>
+  <param name="robot_description" command="xacro --inorder $(find aubo_description)/urdf/aubo_i5_robot.urdf.xacro"/>
 
   <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"/>
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>

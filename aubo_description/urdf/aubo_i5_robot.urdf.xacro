@@ -13,6 +13,14 @@
     <child link = "base_link"/>
   </joint>
 
-  <xacro:aubo_i5 prefix=""/>
+  <xacro:aubo_i5 prefix="">
+    <calibration rising="0.0"/>
+    <calibration rising="0.0"/>
+    <calibration rising="0.0"/>
+    <calibration rising="0.0"/>
+    <calibration rising="0.0"/>
+    <calibration rising="0.0"/>
+    <limit lower="-3.05" upper="3.05" velocity="3.14" effort="34.0"/>
+  </xacro:aubo_i5>
 
 </robot>

@@ -61,14 +61,14 @@ int main(int argc, char* argv[])
   {
     rate.sleep();
 
-    ros::Time curr_time = ros::Time::now();
-    ros::Duration period = curr_time - prev_time;
+    ros::Time time = ros::Time::now();
+    ros::Duration period = time - prev_time;
 
-    aubo_hw.read();
-    controller_manager.update(curr_time, period);
-    aubo_hw.write();
+    aubo_hw.read(time, period);
+    controller_manager.update(time, period);
+    aubo_hw.write(time, period);
 
-    prev_time = curr_time;
+    prev_time = time;
   }
 
 
