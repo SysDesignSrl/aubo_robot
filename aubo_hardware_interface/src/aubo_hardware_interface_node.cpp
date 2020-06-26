@@ -61,8 +61,8 @@ int main(int argc, char* argv[])
   {
     rate.sleep();
 
-    ros::Time time = ros::Time::now();
-    ros::Duration period = time - prev_time;
+    const ros::Time time = ros::Time::now();
+    const ros::Duration period = time - prev_time;
 
     aubo_hw.read(time, period);
     controller_manager.update(time, period);

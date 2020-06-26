@@ -33,9 +33,6 @@ private:
   ros::NodeHandle node;
   ros::Timer refresh_cycle;
 
-  double loop_hz;
-  std::vector<std::string> joint_names;
-
   hardware_interface::JointStateInterface jnt_state_interface;
   hardware_interface::PositionJointInterface jnt_pos_interface;
   hardware_interface::VelocityJointInterface jnt_vel_interface;
@@ -76,7 +73,7 @@ public:
 
   bool init(const std::vector<std::string> &joints)
   {
-    int n_joints = joints.size();
+    const int n_joints = joints.size();
 
     j_pos.resize(n_joints, 0.0); j_pos_cmd.resize(n_joints, 0.0);
     j_vel.resize(n_joints, 0.0); j_vel_cmd.resize(n_joints, 0.0);
@@ -84,7 +81,7 @@ public:
 
     for (int i=0; i < n_joints; i++)
     {
-      hardware_interface::JointStateHandle jnt_state_handle(joint_names[i], &j_pos[i], &j_vel[i], &j_eff[i]);
+      hardware_interface::JointStateHandle jnt_state_handle(joints[i], &j_pos[i], &j_vel[i], &j_eff[i]);
       jnt_state_interface.registerHandle(jnt_state_handle);
 
       hardware_interface::JointHandle jnt_pos_handle(jnt_state_handle, &j_pos_cmd[i]);
