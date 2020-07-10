@@ -29,15 +29,12 @@ bool aubo::AuboRobot::logout()
 }
 
 
-bool aubo::AuboRobot::robot_startup()
+bool aubo::AuboRobot::robot_startup(XmlRpc::XmlRpcValue &tool_dynamics, unsigned int collision_class)
 {
   int error_code;
 
-
   aubo_robot_namespace::ToolDynamicsParam tool_dynamics_param;
-
-  XmlRpc::XmlRpcValue tool_dynamics;
-  if (ros::param::get("/aubo_driver/aubo/tool_dynamics", tool_dynamics))
+  try
   {
     tool_dynamics_param.positionX = tool_dynamics["position"]["x"];
     tool_dynamics_param.positionY = tool_dynamics["position"]["y"];
@@ -50,21 +47,23 @@ bool aubo::AuboRobot::robot_startup()
     tool_dynamics_param.toolInertia.yz = tool_dynamics["inertia"]["yz"];
     tool_dynamics_param.toolInertia.zz = tool_dynamics["inertia"]["zz"];
   }
+  catch (const XmlRpc::XmlRpcException &ex)
+  {
+    auto code = ex.getCode();
+    auto message = ex.getMessage();
+    ROS_ERROR("Error %d, %s", code, message.c_str());
+    return false;
+  }
 
+  aubo_robot_namespace::ROBOT_SERVICE_STATE robot_state;
 
-  int collision_class = 6;
-  ros::param::get("/aubo_driver/aubo/collision_class", collision_class);
-
-
-  aubo_robot_namespace::ROBOT_SERVICE_STATE result;
-
-  error_code = service_interface.rootServiceRobotStartup(tool_dynamics_param, collision_class, true, true, 1000, result);
+  error_code = service_interface.rootServiceRobotStartup(tool_dynamics_param, collision_class, true, true, 1000, robot_state);
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     return false;
   }
 
-  switch (result)
+  switch (robot_state)
   {
     case aubo_robot_namespace::ROBOT_SERVICE_STATE::ROBOT_SERVICE_READY:
       break;

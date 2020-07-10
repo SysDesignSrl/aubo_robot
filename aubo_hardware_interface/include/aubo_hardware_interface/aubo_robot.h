@@ -5,11 +5,14 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
-//
+// xmlrpcpp
 #include <XmlRpcValue.h>
+#include <XmlRpcException.h>
+
 // AUBO SDK
 #include "lib/AuboRobotMetaType.h"
 #include "lib/robot_state.h"
@@ -32,7 +35,7 @@ public:
   bool logout();
 
 
-  bool robot_startup();
+  bool robot_startup(XmlRpc::XmlRpcValue &tool_dynamics, unsigned int collision_class = 6);
 
   bool robot_shutdown();
 

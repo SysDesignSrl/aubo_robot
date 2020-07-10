@@ -12,6 +12,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <!-- -->
   <depend>roscpp</depend>
+  <depend>xmlrpcpp</depend>
   <depend>hardware_interface</depend>
   <depend>transmission_interface</depend>
   <depend>controller_manager</depend>

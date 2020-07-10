@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(aubo_hardware_interface)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -9,6 +9,7 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  xmlrpcpp
   hardware_interface
   transmission_interface
   controller_manager
@@ -105,7 +106,12 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES aubo_hardware_interface
-  CATKIN_DEPENDS roscpp hardware_interface transmission_interface controller_manager
+  CATKIN_DEPENDS
+    roscpp
+    xmlrpcpp
+    hardware_interface
+    transmission_interface
+    controller_manager
 #  DEPENDS system_lib
 )
 

@@ -22,9 +22,24 @@ class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboRobot aubo_robot;
 
-  // Diagnostinc Info
+  /*** Diagnostinc Info ***/
+
+  // Arm
+  bool arm_power_status;
+  double arm_power_current;
+  double arm_power_voltage;
+  uint8 arm_canbus_status;
+  // Emergency
+  bool soft_emergency;
+  bool remote_emergency;
+
   bool robot_collision;
   bool force_control_mode;
+  bool brake_status;
+  // Alarm
+  bool singularity_overspeed_alarm;
+  bool robot_current_alarm;
+  // CAN bus
   uint16 can_buffer_size;
   uint16 can_data_size;
   uint8 can_data_warning;
@@ -57,14 +72,39 @@ public:
       ROS_WARN("Failed to retrieve diagnostic info from the robot!");
     }
 
+    arm_power_status = aubo_robot.robotDiagnosis.armPowerStatus;                // The switch status (on, off)of robot 48V power
+    arm_power_current = aubo_robot.robotDiagnosis.armPowerCurrent;              // The current of robot 48V power
+    arm_power_voltage = aubo_robot.robotDiagnosis.armPowerVoltage;              // The voltage of robot 48V power
+    arm_canbus_status = aubo_robot.robotDiagnosis.armCanbusStatus;              // 0x00: No error 0xff:CAN bus error
+
+    soft_emergency = aubo_robot.robotDiagnosis.softEmergency;                   // Robot soft emergency
+    remote_emergency = aubo_robot.robotDiagnosis.remoteEmergency;               // Remote emergency signal
+
     robot_collision = aubo_robot.robotDiagnosis.robotCollision;                 // Collision detection flag
+
     force_control_mode = aubo_robot.robotDiagnosis.forceControlMode;            // Force Control Mode flag
+    brake_status = aubo_robot.robotDiagnosis.brakeStuats;                       // Brake status
+
+    singularity_overspeed_alarm = aubo_robot.robotDiagnosis.singularityOverSpeedAlarm;  // The overspeed alarm of robot singularity
+    robot_current_alarm = aubo_robot.robotDiagnosis.robotCurrentAlarm;                  // The alarm of robot current flow
+
     can_buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;         // The maximum size of the CANbus buffer
     can_data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;             // The current data size of the CANbus buffer
     can_data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;       // The CANbus buffer data interruption
 
-    ROS_WARN_COND(robot_collision, "Robot collision detected!");
+    ROS_ERROR_COND(arm_canbus_status != 0x00, "Arm CAN bus Error: 0x%.2X", arm_canbus_status);
+
+    ROS_ERROR_COND(soft_emergency, "Soft Emergency.");
+    ROS_FATAL_COND(remote_emergency, "Remote Emergency!");
+
+    ROS_FATAL_COND(robot_collision, "Robot collision!");
+
     ROS_INFO_COND(force_control_mode, "Force Control mode enabled.");
+    ROS_WARN_COND(brake_status, "Brake active.");
+
+    ROS_FATAL_COND(singularity_overspeed_alarm, "Singularity Overspeed!");
+    ROS_FATAL_COND(robot_current_alarm, "Robot Current Overflow!");
+
     ROS_DEBUG_THROTTLE(0.0, "CAN buffer size: %d", can_buffer_size);
     ROS_DEBUG_THROTTLE(0.0, "CAN data size: %d", can_data_size);
     ROS_WARN_COND(can_data_warning != 0x00, "CAN data Warining: %d", can_data_warning);
@@ -144,33 +184,52 @@ public:
   bool start(std::string host,  unsigned int port)
   {
     // Login
-    if (!aubo_robot.login(host, port))
+    if (aubo_robot.login(host, port))
+    {
+      node.setParam("robot_connected", true);
+      ROS_INFO("Connected to %s:%d", host.c_str(), port);
+    }
+    else
     {
       node.setParam("robot_connected", false);
       ROS_ERROR("Failed to connect to %s:%d", host.c_str(), port);
       return false;
     }
 
-    ROS_INFO("Connected to %s:%d", host.c_str(), port);
-
     // Startup
-    if (!aubo_robot.robot_startup())
+    XmlRpc::XmlRpcValue tool_dynamics;
+    if (!node.getParam("aubo/tool_dynamics", tool_dynamics))
+    {
+      std::string param_name = node.resolveName("aubo/tool_dynamics");
+      ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
+    }
+
+    int collision_class;
+    if (!node.getParam("aubo/collision_class", collision_class))
+    {
+      std::string param_name = node.resolveName("aubo/collision_class");
+      ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
+    }
+
+    if (aubo_robot.robot_startup(tool_dynamics, collision_class))
+    {
+      ROS_INFO("Robot started up with collision class: %d", collision_class);
+    }
+    else
     {
       ROS_ERROR("Failed to start up the Robot.");
       return false;
     }
 
-    ROS_INFO("Robot started up correctly.");
-
-    // TCP 2 CANbus
-    if (!aubo_robot.enable_tcp_canbus_mode())
+    if (aubo_robot.enable_tcp_canbus_mode())
+    {
+      ROS_INFO("Enabled TCP 2 CANbus Mode.");
+    }
+    else
     {
       ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
       return false;
     }
-
-    ROS_INFO("Enabled TCP 2 CANbus Mode.");
-
 
     if (!init_robot())
     {
@@ -179,8 +238,6 @@ public:
     }
 
     refresh_cycle.start();
-
-    node.setParam("robot_connected", true);
     return true;
   }
 
