@@ -1,6 +1,86 @@
 #include "aubo_hardware_interface/aubo_robot.h"
 
 
+void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *arg)
+{
+  auto type = eventInfo->eventType;
+  auto code =  eventInfo->eventCode;
+  auto message = eventInfo->eventContent;
+
+  switch (type)
+  {
+    case aubo_robot_namespace::RobotEventType::RobotEvent_armCanbusError:
+      ROS_ERROR("Arm CANbus Error: %d,  %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_remoteHalt:
+      ROS_WARN("Remote Halt: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_remoteEmergencyStop:
+      ROS_FATAL("Remote Emergency Stop: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_jointError:
+      ROS_ERROR("Joint Error: %d,  %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_forceControl:
+      ROS_INFO("Force Control: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_exitForceControl:
+      ROS_INFO("Exit Force Control: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_softEmergency:
+      ROS_ERROR("Soft Emergency: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_exitSoftEmergency:
+      ROS_INFO("Exit Soft Emergency: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_collision:
+      ROS_FATAL("Collision: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_collisionStatusChanged:
+      ROS_INFO("Collision Status Changed: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_tcpParametersSucc:
+      ROS_INFO("Tool dynamic parameters Success: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_ArmPowerOff:
+      ROS_WARN("Arm Power Off: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_singularityOverspeed:
+      ROS_ERROR("Event Code: %d, Singularity Overspeed!: %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_currentAlarm:
+      ROS_ERROR("Event Code: %d, Current Alarm!: %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupPhase:
+      ROS_INFO("Robot Startup Phase: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupDoneResult:
+      ROS_INFO("Robot Startup Done Result: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_robotShutdownDone:
+      ROS_INFO("Robot Shutdown Done: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotSetPowerOnDone:
+      ROS_INFO("Event Code: %d, Robot Set Power Done: %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotReleaseBrakeDone:
+      ROS_INFO("Event Code: %d, Release Brake Done: %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_robotControllerStateChaned:
+      ROS_INFO("Event Code: %d, Robot Controller State Changed: %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_socketDisconnected:
+      ROS_INFO("Event Code: %d, Socked Disconnected: %s", code, message.c_str());
+      break;
+  }
+}
+
+
 bool aubo::AuboRobot::login(std::string hostname, unsigned int port, std::string username, std::string password)
 {
   int error_code;
@@ -383,6 +463,20 @@ bool aubo::AuboRobot::get_analog_inputs(std::vector<double> &analog_inputs)
     double val = statusVector[i].ioValue;
 
     analog_inputs.push_back(val);
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::register_event_info()
+{
+  int error_code;
+
+  error_code = service_interface.robotServiceRegisterRobotEventInfoCallback(event_info_cb, this);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    return false;
   }
 
   return true;

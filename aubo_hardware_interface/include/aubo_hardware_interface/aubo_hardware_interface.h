@@ -5,9 +5,13 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// std_srvs
+#include <std_srvs/Trigger.h>
+
 // hardware_interface
 #include <hardware_interface/robot_hw.h>
 #include <hardware_interface/joint_state_interface.h>
@@ -196,12 +200,44 @@ public:
       return false;
     }
 
-    // Startup
+    if (!aubo_robot.register_event_info())
+    {
+      ROS_ERROR("Failed to register to robot events");
+      return false;
+    }
+
+    if (!init_robot())
+    {
+      return false;
+    }
+
+    if (!robot_startup())
+    {
+      return false;
+    }
+
+    if (aubo_robot.enable_tcp_canbus_mode())
+    {
+      ROS_INFO("Enabled TCP 2 CANbus Mode.");
+    }
+    else
+    {
+      ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+      return false;
+    }
+
+    return true;
+  }
+
+
+  bool robot_startup()
+  {
     XmlRpc::XmlRpcValue tool_dynamics;
     if (!node.getParam("aubo/tool_dynamics", tool_dynamics))
     {
       std::string param_name = node.resolveName("aubo/tool_dynamics");
       ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
+      return false;
     }
 
     int collision_class;
@@ -217,27 +253,27 @@ public:
     }
     else
     {
-      ROS_ERROR("Failed to start up the Robot.");
+      ROS_ERROR("Failed to startup the Robot.");
       return false;
     }
 
-    if (aubo_robot.enable_tcp_canbus_mode())
+    return true;
+  }
+
+
+  bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+  {
+    if (robot_startup())
     {
-      ROS_INFO("Enabled TCP 2 CANbus Mode.");
+      res.success = true;
+      res.message = "Robot started up successfully.";
     }
     else
     {
-      ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
-      return false;
+      res.success = false;
+      res.message = "Failed to startup the Robot.";
     }
 
-    if (!init_robot())
-    {
-      ROS_FATAL("Failed to initialize the Robot.");
-      return false;
-    }
-
-    refresh_cycle.start();
     return true;
   }
 

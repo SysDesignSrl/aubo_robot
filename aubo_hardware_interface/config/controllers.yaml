@@ -16,6 +16,7 @@ aubo_i3:
         - wrist1_joint
         - wrist2_joint
         - wrist3_joint
+      stop_trajectory_duration: 1.0
 
 aubo_i5:
   controller:
@@ -31,6 +32,14 @@ aubo_i5:
         - wrist1_joint
         - wrist2_joint
         - wrist3_joint
+      constraints:
+        shoulder_joint: { goal: 0.02, trajectory: 0.04 }
+        upperArm_joint: { goal: 0.02, trajectory: 0.04 }
+        foreArm_joint: { goal: 0.02, trajectory: 0.04 }
+        wrist1_joint: { goal: 0.02, trajectory: 0.04 }
+        wrist2_joint: { goal: 0.02, trajectory: 0.04 }
+        wrist3_joint: { goal: 0.02, trajectory: 0.04 }
+      stop_trajectory_duration: 1.0
 
 aubo_i7:
   controller:
@@ -46,3 +55,4 @@ aubo_i7:
         - wrist1_joint
         - wrist2_joint
         - wrist3_joint
+      stop_trajectory_duration: 1.0

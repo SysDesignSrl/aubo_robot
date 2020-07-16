@@ -34,7 +34,6 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
@@ -45,6 +44,9 @@ int main(int argc, char* argv[])
     ROS_FATAL("Failed to initialize Hardware Interface.");
     return 1;
   }
+
+  // Services
+  auto robot_startup = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
 
   // Controller Manager
   controller_manager::ControllerManager controller_manager(&aubo_hw, node);

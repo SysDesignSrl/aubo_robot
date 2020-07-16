@@ -74,6 +74,17 @@ public:
   bool get_robot_diagnostic_info();
 
 
+  /* Registers the callback function for obtaining the event information of the
+   * manipulator. After registering the callback function, the server pushes the
+   * event information in real time. Regarding the event information pushing, it
+   * does not provide the interface for changing whether it is allowed the information
+   * to be pushed because many important notifications of the manipulator are
+   * implemented by pushing event information. So, the event information is the
+   * system default push, not allowed to cancel. */
+
+  bool register_event_info();
+
+
   bool read(std::vector<double> &joint_pos)
   {
     int error_code;
