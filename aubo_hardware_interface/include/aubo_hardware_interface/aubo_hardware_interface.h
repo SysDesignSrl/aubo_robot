@@ -172,17 +172,21 @@ public:
 
   bool init_robot();
 
-  bool start(std::string host,  unsigned int port);
+  bool login(std::string host,  unsigned int port);
 
-  bool start(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+  bool login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+
+  bool logout();
+
+  bool logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   bool robot_startup();
 
   bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
-  bool stop();
+  bool robot_shutdown();
 
-  bool stop(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+  bool robot_shutdown(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
 
   void read(const ros::Time &time, const ros::Duration &period)

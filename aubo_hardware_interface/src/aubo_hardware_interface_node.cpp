@@ -46,9 +46,10 @@ int main(int argc, char* argv[])
   }
 
   // Services
-  auto start_srv = node.advertiseService("start", &aubo_hardware_interface::AuboHW::start, &aubo_hw);
+  auto login_srv = node.advertiseService("login", &aubo_hardware_interface::AuboHW::login, &aubo_hw);
+  auto logout_srv = node.advertiseService("logout", &aubo_hardware_interface::AuboHW::logout, &aubo_hw);
   auto robot_startup_srv = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
-  auto stop_srv = node.advertiseService("stop", &aubo_hardware_interface::AuboHW::stop, &aubo_hw);
+  auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
 
   // Controller Manager
   // controller_manager::ControllerManager controller_manager(&aubo_hw, node);

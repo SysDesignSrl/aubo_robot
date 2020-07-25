@@ -43,7 +43,7 @@ bool aubo_hardware_interface::AuboHW::init_robot()
 }
 
 
-bool aubo_hardware_interface::AuboHW::start(std::string host,  unsigned int port = 8899)
+bool aubo_hardware_interface::AuboHW::login(std::string host,  unsigned int port = 8899)
 {
   // Login
   if (aubo_robot.login(host, port))
@@ -69,40 +69,33 @@ bool aubo_hardware_interface::AuboHW::start(std::string host,  unsigned int port
     return false;
   }
 
-  // if (!robot_startup())
-  // {
-  //   return false;
-  // }
-  //
-  // if (aubo_robot.enable_tcp_canbus_mode())
-  // {
-  //   ROS_INFO("Enabled TCP 2 CANbus Mode.");
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
-  //   return false;
-  // }
-  //
-  // control_loop.start();
+  if (aubo_robot.enable_tcp_canbus_mode())
+  {
+    ROS_INFO("Enabled TCP 2 CANbus Mode.");
+  }
+  else
+  {
+    ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+  }
+
   return true;
 }
 
 
-bool aubo_hardware_interface::AuboHW::start(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+bool aubo_hardware_interface::AuboHW::login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
   auto host = node.param<std::string>("tcp/host", "localhost");
   auto port = node.param<int>("tcp/port", 8899);
 
-  if (start(host, port))
+  if (login(host, port))
   {
     res.success = true;
-    res.message = "Robot started up successfully.";
+    res.message = "Logged in successfully.";
   }
   else
   {
     res.success = false;
-    res.message = "Failed to startup the Robot.";
+    res.message = "Failed to log in.";
   }
 
   return true;
@@ -136,16 +129,6 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
     return false;
   }
 
-  if (aubo_robot.enable_tcp_canbus_mode())
-  {
-    ROS_INFO("Enabled TCP 2 CANbus Mode.");
-  }
-  else
-  {
-    ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
-    //return false;
-  }
-
   control_time = ros::Time::now();
   control_loop.start();
 
@@ -170,54 +153,78 @@ bool aubo_hardware_interface::AuboHW::robot_startup(std_srvs::TriggerRequest &re
 }
 
 
-bool aubo_hardware_interface::AuboHW::stop()
+bool aubo_hardware_interface::AuboHW::robot_shutdown()
 {
   // refresh_cycle.stop();
   control_loop.stop();
+  reset_controllers = true;
 
-  // TCP 2 CANbus
-  if (!aubo_robot.disable_tcp_canbus_mode())
+  if (aubo_robot.robot_shutdown())
   {
-    ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
-    return false;
+    ROS_INFO("Robot shutted down correctly.");
+    return true;
   }
-
-  ROS_INFO("Disabled TCP 2 CANbus Mode.");
-
-  // Shutdown
-  if (!aubo_robot.robot_shutdown())
+  else
   {
     ROS_ERROR("Failed to shutdown the Robot.");
     return false;
   }
-
-  ROS_INFO("Robot shutted down correctly.");
-
-  // Logout
-  if (!aubo_robot.logout())
-  {
-    ROS_ERROR("Failed to log out.");
-    return false;
-  }
-
-  ROS_INFO("Logged out.");
-
-  node.setParam("robot_connected", false);
-  return true;
 }
 
 
-bool aubo_hardware_interface::AuboHW::stop(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+bool aubo_hardware_interface::AuboHW::robot_shutdown(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
-  if (stop())
+  if (robot_shutdown())
   {
     res.success = true;
-    res.message = "Robot stopped up successfully.";
+    res.message = "Robot shutted down successfully.";
   }
   else
   {
     res.success = false;
-    res.message = "Failed to stop Robot.";
+    res.message = "Failed to shutdown the Robot.";
+  }
+
+  return true;
+}
+
+
+bool aubo_hardware_interface::AuboHW::logout()
+{
+  if (aubo_robot.disable_tcp_canbus_mode())
+  {
+    ROS_INFO("Disabled TCP 2 CANbus Mode.");
+  }
+  else
+  {
+    ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
+  }
+
+  if (aubo_robot.logout())
+  {
+    ROS_INFO("Logged out.");
+    node.setParam("robot_connected", false);
+    return true;
+  }
+  else
+  {
+    ROS_ERROR("Failed to log out.");
+    return false;
+  }
+}
+
+
+bool aubo_hardware_interface::AuboHW::logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+{
+  if (logout())
+  {
+    res.success = true;
+    res.message = "Logged out.";
+  }
+  else
+  {
+    res.success = false;
+    res.message = "Failed to log out.";
   }
 
   return true;
