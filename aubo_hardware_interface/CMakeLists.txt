@@ -147,7 +147,7 @@ link_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(aubo_hw src/aubo_hardware_interface_node.cpp src/aubo_robot.cpp)
+add_executable(aubo_hw src/aubo_hardware_interface_node.cpp src/aubo_hardware_interface.cpp src/aubo_robot.cpp)
 
 link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 

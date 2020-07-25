@@ -39,46 +39,47 @@ int main(int argc, char* argv[])
 
   // Hardware Interface
   aubo_hardware_interface::AuboHW aubo_hw(node);
-  if (!aubo_hw.init(joints))
+  if (!aubo_hw.init(loop_hz, joints))
   {
     ROS_FATAL("Failed to initialize Hardware Interface.");
     return 1;
   }
 
   // Services
-  auto robot_startup = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
+  auto start_srv = node.advertiseService("start", &aubo_hardware_interface::AuboHW::start, &aubo_hw);
+  auto robot_startup_srv = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
+  auto stop_srv = node.advertiseService("stop", &aubo_hardware_interface::AuboHW::stop, &aubo_hw);
 
   // Controller Manager
-  controller_manager::ControllerManager controller_manager(&aubo_hw, node);
-  if (!aubo_hw.start(host, port))
-  {
-    ROS_FATAL("Failed to start Hardware Interface.");
-    return 1;
-  }
+  // controller_manager::ControllerManager controller_manager(&aubo_hw, node);
+  // if (!aubo_hw.start(host, port))
+  // {
+  //   ROS_FATAL("Failed to start Hardware Interface.");
+  //   return 1;
+  // }
 
+  // ros::Rate rate(loop_hz);
+  // ros::Time prev_time = ros::Time::now();
+  // while (ros::ok())
+  // {
+  //   rate.sleep();
+  //
+  //   const ros::Time time = ros::Time::now();
+  //   const ros::Duration period = time - prev_time;
+  //
+  //   aubo_hw.read(time, period);
+  //   controller_manager.update(time, period);
+  //   aubo_hw.write(time, period);
+  //
+  //   prev_time = time;
+  // }
 
-  ros::Rate rate(loop_hz);
-  ros::Time prev_time = ros::Time::now();
-  while (ros::ok())
-  {
-    rate.sleep();
+  // if (!aubo_hw.stop())
+  // {
+  //   ROS_FATAL("Failed to stop Hardware Interface.");
+  //   return 1;
+  // }
 
-    const ros::Time time = ros::Time::now();
-    const ros::Duration period = time - prev_time;
-
-    aubo_hw.read(time, period);
-    controller_manager.update(time, period);
-    aubo_hw.write(time, period);
-
-    prev_time = time;
-  }
-
-
-  if (!aubo_hw.stop())
-  {
-    ROS_FATAL("Failed to stop Hardware Interface.");
-    return 1;
-  }
-
+  ros::waitForShutdown();
   return 0;
 }

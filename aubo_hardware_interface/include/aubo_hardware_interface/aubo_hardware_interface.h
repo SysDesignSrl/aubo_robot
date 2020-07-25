@@ -16,6 +16,8 @@
 #include <hardware_interface/robot_hw.h>
 #include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/joint_command_interface.h>
+// controller manager
+#include <controller_manager/controller_manager.h>
 // aubo_hardware_interface
 #include "aubo_hardware_interface/aubo_robot.h"
 
@@ -25,6 +27,7 @@ namespace aubo_hardware_interface {
 class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboRobot aubo_robot;
+  controller_manager::ControllerManager controller_manager;
 
   /*** Diagnostinc Info ***/
 
@@ -51,6 +54,8 @@ private:
 
   ros::NodeHandle node;
   ros::Timer refresh_cycle;
+  ros::Timer control_loop;
+  ros::Time control_time;
 
   hardware_interface::JointStateInterface jnt_state_interface;
   hardware_interface::PositionJointInterface jnt_pos_interface;
@@ -62,7 +67,9 @@ private:
 
 public:
 
-  AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) : node(node)
+  AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) :
+    node(node),
+    controller_manager(this, node)
   {
     ros::Duration period(1.0);
     refresh_cycle = node.createTimer(period, &aubo_hardware_interface::AuboHW::refresh_cycle_cb, this, false, false);
@@ -115,8 +122,24 @@ public:
   }
 
 
-  bool init(const std::vector<std::string> &joints)
+  void control_loop_cb(const ros::TimerEvent &ev)
   {
+    const ros::Time time = ev.current_real;
+    const ros::Duration period = time - control_time;
+
+    read(time, period);
+    controller_manager.update(time, period);
+    write(time, period);
+
+    control_time = time;
+  }
+
+
+  bool init(double loop_hz, const std::vector<std::string> &joints)
+  {
+    ros::Duration period(1.0/loop_hz);
+    control_loop = node.createTimer(period, &aubo_hardware_interface::AuboHW::control_loop_cb, this, false, false);
+
     const int n_joints = joints.size();
 
     j_pos.resize(n_joints, 0.0); j_pos_cmd.resize(n_joints, 0.0);
@@ -143,175 +166,19 @@ public:
   }
 
 
-  bool init_robot()
-  {
-    std::vector<double> max_joint_acc;
-    if (node.getParam("aubo/max_joint_acceleration", max_joint_acc))
-    {
-      aubo_robot.set_max_joint_acceleration(max_joint_acc);
-    }
+  bool init_robot();
 
-    std::vector<double> max_joint_vel;
-    if (node.getParam("aubo/max_joint_velocity", max_joint_vel))
-    {
-      aubo_robot.set_max_joint_velocity(max_joint_vel);
-    }
+  bool start(std::string host,  unsigned int port);
 
-    aubo_robot.get_max_joint_acceleration(max_joint_acc);
-    {
-      std::stringstream ss;
-      ss << "[ ";
-      for (double val : max_joint_acc)
-      {
-        ss << val << " ";
-      }
-      ss << "] ";
-      ROS_DEBUG_STREAM("max joint acceleration: " << ss.str() << "[rad/s^2]");
-    }
+  bool start(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
-    aubo_robot.get_max_joint_velocity(max_joint_vel);
-    {
-      std::stringstream ss;
-      ss << "[ ";
-      for (double val : max_joint_vel)
-      {
-        ss << val << " ";
-      }
-      ss << "] ";
-      ROS_DEBUG_STREAM("max joint velocity: " << ss.str() << "[rad/s]");
-    }
+  bool robot_startup();
 
-    return true;
-  }
+  bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
+  bool stop();
 
-  bool start(std::string host,  unsigned int port)
-  {
-    // Login
-    if (aubo_robot.login(host, port))
-    {
-      node.setParam("robot_connected", true);
-      ROS_INFO("Connected to %s:%d", host.c_str(), port);
-    }
-    else
-    {
-      node.setParam("robot_connected", false);
-      ROS_ERROR("Failed to connect to %s:%d", host.c_str(), port);
-      return false;
-    }
-
-    if (!aubo_robot.register_event_info())
-    {
-      ROS_ERROR("Failed to register to robot events");
-      return false;
-    }
-
-    if (!init_robot())
-    {
-      return false;
-    }
-
-    if (!robot_startup())
-    {
-      return false;
-    }
-
-    if (aubo_robot.enable_tcp_canbus_mode())
-    {
-      ROS_INFO("Enabled TCP 2 CANbus Mode.");
-    }
-    else
-    {
-      ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
-      return false;
-    }
-
-    return true;
-  }
-
-
-  bool robot_startup()
-  {
-    XmlRpc::XmlRpcValue tool_dynamics;
-    if (!node.getParam("aubo/tool_dynamics", tool_dynamics))
-    {
-      std::string param_name = node.resolveName("aubo/tool_dynamics");
-      ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
-      return false;
-    }
-
-    int collision_class;
-    if (!node.getParam("aubo/collision_class", collision_class))
-    {
-      std::string param_name = node.resolveName("aubo/collision_class");
-      ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
-    }
-
-    if (aubo_robot.robot_startup(tool_dynamics, collision_class))
-    {
-      ROS_INFO("Robot started up with collision class: %d", collision_class);
-    }
-    else
-    {
-      ROS_ERROR("Failed to startup the Robot.");
-      return false;
-    }
-
-    return true;
-  }
-
-
-  bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
-  {
-    if (robot_startup())
-    {
-      res.success = true;
-      res.message = "Robot started up successfully.";
-    }
-    else
-    {
-      res.success = false;
-      res.message = "Failed to startup the Robot.";
-    }
-
-    return true;
-  }
-
-
-  bool stop()
-  {
-    refresh_cycle.stop();
-
-    // TCP 2 CANbus
-    if (!aubo_robot.disable_tcp_canbus_mode())
-    {
-      ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
-      return false;
-    }
-
-    ROS_INFO("Disabled TCP 2 CANbus Mode.");
-
-    // Shutdown
-    if (!aubo_robot.robot_shutdown())
-    {
-      ROS_ERROR("Failed to shutdown the Robot.");
-      return false;
-    }
-
-    ROS_INFO("Robot shutted down correctly.");
-
-    // Logout
-    if (!aubo_robot.logout())
-    {
-      ROS_ERROR("Failed to log out.");
-      return false;
-    }
-
-    ROS_INFO("Logged out.");
-
-    node.setParam("robot_connected", false);
-    return true;
-  }
+  bool stop(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
 
   void read(const ros::Time &time, const ros::Duration &period)
