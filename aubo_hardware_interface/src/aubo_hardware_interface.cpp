@@ -69,23 +69,22 @@ bool aubo_hardware_interface::AuboHW::start(std::string host,  unsigned int port
     return false;
   }
 
-  if (!robot_startup())
-  {
-    return false;
-  }
-
-  if (aubo_robot.enable_tcp_canbus_mode())
-  {
-    ROS_INFO("Enabled TCP 2 CANbus Mode.");
-  }
-  else
-  {
-    ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
-    return false;
-  }
-
-
-  control_loop.start();
+  // if (!robot_startup())
+  // {
+  //   return false;
+  // }
+  //
+  // if (aubo_robot.enable_tcp_canbus_mode())
+  // {
+  //   ROS_INFO("Enabled TCP 2 CANbus Mode.");
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+  //   return false;
+  // }
+  //
+  // control_loop.start();
   return true;
 }
 
@@ -136,6 +135,19 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
     ROS_ERROR("Failed to startup the Robot.");
     return false;
   }
+
+  if (aubo_robot.enable_tcp_canbus_mode())
+  {
+    ROS_INFO("Enabled TCP 2 CANbus Mode.");
+  }
+  else
+  {
+    ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+    //return false;
+  }
+
+  control_time = ros::Time::now();
+  control_loop.start();
 
   return true;
 }

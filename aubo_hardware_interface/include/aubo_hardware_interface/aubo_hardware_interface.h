@@ -27,7 +27,10 @@ namespace aubo_hardware_interface {
 class AuboHW : public hardware_interface::RobotHW {
 private:
   aubo::AuboRobot aubo_robot;
+
+  // Controller Manager
   controller_manager::ControllerManager controller_manager;
+  bool reset_controllers = true;
 
   /*** Diagnostinc Info ***/
 
@@ -128,10 +131,11 @@ public:
     const ros::Duration period = time - control_time;
 
     read(time, period);
-    controller_manager.update(time, period);
+    controller_manager.update(time, period, reset_controllers);
     write(time, period);
 
     control_time = time;
+    reset_controllers = false;
   }
 
 
@@ -193,10 +197,10 @@ public:
   void write(const ros::Time &time, const ros::Duration &period)
   {
     //
-    if (std::all_of(j_pos_cmd.cbegin(), j_pos_cmd.cend(), [](double value) { return value == 0.0; }))
-    {
-      return;
-    }
+    // if (std::all_of(j_pos_cmd.cbegin(), j_pos_cmd.cend(), [](double value) { return value == 0.0; }))
+    // {
+    //   return;
+    // }
 
     // Don't send trajectoy command if it's equal to the current joint state to
     // not overload CANbus buffer.
