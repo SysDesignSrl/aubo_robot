@@ -29,6 +29,10 @@ private:
 public:
   aubo_robot_namespace::RobotDiagnosis robotDiagnosis;    // Robot Diagnostic
 
+  // Emergency
+  bool soft_emergency = false;
+  bool remote_emergency = false;
+
 
   bool login(std::string hostname, unsigned int port, std::string username = "AUBO", std::string password = "123456");
 

@@ -3,6 +3,8 @@
 
 void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *arg)
 {
+  aubo::AuboRobot* aubo_robot = (aubo::AuboRobot*)arg;
+
   auto type = eventInfo->eventType;
   auto code =  eventInfo->eventCode;
   auto message = eventInfo->eventContent;
@@ -30,9 +32,11 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_softEmergency:
+      aubo_robot->soft_emergency = true;
       ROS_ERROR("Soft Emergency: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_exitSoftEmergency:
+      aubo_robot->soft_emergency = false;
       ROS_INFO("Exit Soft Emergency: %d, %s", code, message.c_str());
       break;
 

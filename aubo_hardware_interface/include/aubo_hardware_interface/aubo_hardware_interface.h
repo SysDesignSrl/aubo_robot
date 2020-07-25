@@ -127,6 +127,13 @@ public:
 
   void control_loop_cb(const ros::TimerEvent &ev)
   {
+    if (aubo_robot.soft_emergency)
+    {
+      reset_controllers = true;
+      control_loop.stop();
+      return;
+    }
+
     const ros::Time time = ev.current_real;
     const ros::Duration period = time - control_time;
 
