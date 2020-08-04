@@ -138,7 +138,7 @@ public:
     const ros::Duration period = time - control_time;
 
     read(time, period);
-    controller_manager.update(time, period);
+    controller_manager.update(time, period, reset_controllers);
     write(time, period);
 
     control_time = time;
