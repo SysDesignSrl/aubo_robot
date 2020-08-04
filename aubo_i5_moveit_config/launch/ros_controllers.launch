@@ -5,7 +5,7 @@
   <rosparam command="load" file="$(find aubo_i5_moveit_config)/config/ros_controllers.yaml" />
 
   <!-- Load the controllers -->
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" output="screen"
-    ns="aubo_i5" args="aubo_controller" />
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" output="screen" ns="aubo_i5"
+    args="/aubo_i5/controller/arm_controller" />
 
 </launch>

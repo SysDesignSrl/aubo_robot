@@ -138,7 +138,7 @@ public:
     const ros::Duration period = time - control_time;
 
     read(time, period);
-    controller_manager.update(time, period, reset_controllers);
+    controller_manager.update(time, period);
     write(time, period);
 
     control_time = time;
@@ -200,29 +200,13 @@ public:
   {
     if (!aubo_robot.read(j_pos))
     {
-      ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions from robot!");
+      ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions state from robot!");
     }
   }
 
 
   void write(const ros::Time &time, const ros::Duration &period)
   {
-    //
-    // if (std::all_of(j_pos_cmd.cbegin(), j_pos_cmd.cend(), [](double value) { return value == 0.0; }))
-    // {
-    //   return;
-    // }
-
-    // Don't send trajectoy command if it's equal to the current joint state to
-    // not overload CANbus buffer.
-    // if (std::equal(j_pos_cmd.cbegin(), j_pos_cmd.cend(), j_pos_cmd_1.cbegin()))
-    // {
-    //   return;
-    // }
-    //
-    // std::copy(j_pos_cmd.cbegin(), j_pos_cmd.cend(), j_pos_cmd_1.begin());
-
-
     if (!aubo_robot.write(j_pos_cmd))
     {
       ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");

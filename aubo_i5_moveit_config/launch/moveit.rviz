@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /MotionPlanning1
         - /MotionPlanning1/Scene Robot1
+        - /MotionPlanning1/Planned Path1
       Splitter Ratio: 0.534328341
     Tree Height: 435
   - Class: rviz/Help
@@ -83,11 +84,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          pedestal_Link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           shoulder_Link:
             Alpha: 1
             Show Axes: false
@@ -117,7 +113,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-        Loop Animation: true
+        Loop Animation: false
         Robot Alpha: 0.5
         Robot Color: 150; 50; 150
         Show Robot Collision: false
@@ -172,11 +168,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          pedestal_Link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           shoulder_Link:
             Alpha: 1
             Show Axes: false
@@ -189,7 +180,7 @@ Visualization Manager:
             Value: true
           world:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           wrist1_Link:
             Alpha: 1
@@ -210,13 +201,13 @@ Visualization Manager:
         Show Robot Collision: false
         Show Robot Visual: true
       Value: true
-      Velocity_Scaling_Factor: 1
+      Velocity_Scaling_Factor: 0.050000000000000003
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /moving_node/display_goals
       Name: Goals
       Namespaces:
-        WORLD: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -242,18 +233,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.420893312
-        Y: -0.0989822149
+        X: 0.238863319
+        Y: -0.0464068651
         Z: 5.81145855e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.174797758
+      Pitch: 0.179797739
       Target Frame: world
       Value: XYOrbit (rviz)
-      Yaw: 5.21813059
+      Yaw: 1.57994652
     Saved: ~
 Window Geometry:
   Displays:

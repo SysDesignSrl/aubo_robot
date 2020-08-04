@@ -18,18 +18,16 @@
 
 
   <!-- Launch Drivers -->
-  <include file="$(find aubo_driver)/launch/aubo_driver.launch">
-    <arg name="hostname" value="192.168.242.241"/>
+  <include file="$(find aubo_hardware_interface)/launch/aubo_i5.launch">
+    <arg name="host" value="192.168.242.246"/>
     <arg name="port" value="8899"/>
   </include>
-
-  <node name="aubo_controller" pkg="aubo_controller" type="aubo_controller" output="screen"/>
 
 
   <!-- Robot State Publisher -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <rosparam param="source_list">[aubo_driver/joint_states]</rosparam>
+    <rosparam param="source_list">[aubo_i5/joint_states]</rosparam>
   </node>
 
   <!-- MoveGroup -->
