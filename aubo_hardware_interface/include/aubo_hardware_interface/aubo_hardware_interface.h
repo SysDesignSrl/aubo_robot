@@ -157,7 +157,7 @@ public:
     j_vel.resize(n_joints, 0.0); j_vel_cmd.resize(n_joints, 0.0);
     j_eff.resize(n_joints, 0.0); j_eff_cmd.resize(n_joints, 0.0);
 
-    for (int i=0; i < n_joints; i++)
+    for (int i = 0; i < n_joints; i++)
     {
       hardware_interface::JointStateHandle jnt_state_handle(joints[i], &j_pos[i], &j_vel[i], &j_eff[i]);
       jnt_state_interface.registerHandle(jnt_state_handle);
@@ -194,6 +194,8 @@ public:
   bool robot_shutdown();
 
   bool robot_shutdown(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+
+  bool reset(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
 
   void read(const ros::Time &time, const ros::Duration &period)

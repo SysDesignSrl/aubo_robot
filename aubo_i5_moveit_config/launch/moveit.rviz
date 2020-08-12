@@ -201,7 +201,7 @@ Visualization Manager:
         Show Robot Collision: false
         Show Robot Visual: true
       Value: true
-      Velocity_Scaling_Factor: 0.050000000000000003
+      Velocity_Scaling_Factor: 0.20000000000000001
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /moving_node/display_goals

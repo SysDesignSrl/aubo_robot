@@ -50,36 +50,7 @@ int main(int argc, char* argv[])
   auto logout_srv = node.advertiseService("logout", &aubo_hardware_interface::AuboHW::logout, &aubo_hw);
   auto robot_startup_srv = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
   auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
-
-  // Controller Manager
-  // controller_manager::ControllerManager controller_manager(&aubo_hw, node);
-  // if (!aubo_hw.start(host, port))
-  // {
-  //   ROS_FATAL("Failed to start Hardware Interface.");
-  //   return 1;
-  // }
-
-  // ros::Rate rate(loop_hz);
-  // ros::Time prev_time = ros::Time::now();
-  // while (ros::ok())
-  // {
-  //   rate.sleep();
-  //
-  //   const ros::Time time = ros::Time::now();
-  //   const ros::Duration period = time - prev_time;
-  //
-  //   aubo_hw.read(time, period);
-  //   controller_manager.update(time, period);
-  //   aubo_hw.write(time, period);
-  //
-  //   prev_time = time;
-  // }
-
-  // if (!aubo_hw.stop())
-  // {
-  //   ROS_FATAL("Failed to stop Hardware Interface.");
-  //   return 1;
-  // }
+  auto reset_controllers_srv = node.advertiseService("reset_controllers", &aubo_hardware_interface::AuboHW::reset, &aubo_hw);
 
   ros::waitForShutdown();
   return 0;

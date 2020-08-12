@@ -102,6 +102,48 @@ bool aubo_hardware_interface::AuboHW::login(std_srvs::TriggerRequest &req, std_s
 }
 
 
+bool aubo_hardware_interface::AuboHW::logout()
+{
+  if (aubo_robot.disable_tcp_canbus_mode())
+  {
+    ROS_INFO("Disabled TCP 2 CANbus Mode.");
+  }
+  else
+  {
+    ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
+  }
+
+  if (aubo_robot.logout())
+  {
+    ROS_INFO("Logged out.");
+    node.setParam("robot_connected", false);
+    return true;
+  }
+  else
+  {
+    ROS_ERROR("Failed to log out.");
+    return false;
+  }
+}
+
+
+bool aubo_hardware_interface::AuboHW::logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+{
+  if (logout())
+  {
+    res.success = true;
+    res.message = "Logged out.";
+  }
+  else
+  {
+    res.success = false;
+    res.message = "Failed to log out.";
+  }
+
+  return true;
+}
+
+
 bool aubo_hardware_interface::AuboHW::robot_startup()
 {
   XmlRpc::XmlRpcValue tool_dynamics;
@@ -189,43 +231,12 @@ bool aubo_hardware_interface::AuboHW::robot_shutdown(std_srvs::TriggerRequest &r
 }
 
 
-bool aubo_hardware_interface::AuboHW::logout()
+bool aubo_hardware_interface::AuboHW::reset(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
-  if (aubo_robot.disable_tcp_canbus_mode())
-  {
-    ROS_INFO("Disabled TCP 2 CANbus Mode.");
-  }
-  else
-  {
-    ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
-  }
+  reset_controllers = true;
 
-  if (aubo_robot.logout())
-  {
-    ROS_INFO("Logged out.");
-    node.setParam("robot_connected", false);
-    return true;
-  }
-  else
-  {
-    ROS_ERROR("Failed to log out.");
-    return false;
-  }
-}
-
-
-bool aubo_hardware_interface::AuboHW::logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
-{
-  if (logout())
-  {
-    res.success = true;
-    res.message = "Logged out.";
-  }
-  else
-  {
-    res.success = false;
-    res.message = "Failed to log out.";
-  }
+  res.success = true;
+  res.message = "Robot shutted down successfully.";
 
   return true;
 }
