@@ -131,6 +131,31 @@ public:
     {
       reset_controllers = true;
       control_loop.stop();
+      node.setParam("soft_emergency", true);
+      return;
+    }
+
+    if (aubo_robot.robot_collision)
+    {
+      reset_controllers = true;
+      control_loop.stop();
+      node.setParam("robot_collision", true);
+      return;
+    }
+
+    if (aubo_robot.singularity_overspeed)
+    {
+      reset_controllers = true;
+      control_loop.stop();
+      node.setParam("singularity_overspeed", true);
+      return;
+    }
+
+    if (aubo_robot.robot_overcurrent)
+    {
+      reset_controllers = true;
+      control_loop.stop();
+      node.setParam("robot_overcurrent", true);
       return;
     }
 

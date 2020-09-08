@@ -33,8 +33,11 @@ public:
   bool soft_emergency = false;
   bool remote_emergency = false;
   // Alarm
-  bool singularity_overspeed_alarm;
-  bool robot_current_alarm;
+  bool robot_collision = false;
+  bool singularity_overspeed = false;
+  bool robot_overcurrent = false;
+  // Status
+  bool arm_powered = false;
 
 
   bool login(std::string hostname, unsigned int port, std::string username = "AUBO", std::string password = "123456");

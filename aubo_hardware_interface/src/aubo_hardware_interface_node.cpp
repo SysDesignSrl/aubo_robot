@@ -52,6 +52,13 @@ int main(int argc, char* argv[])
   auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
   auto reset_controllers_srv = node.advertiseService("reset_controllers", &aubo_hardware_interface::AuboHW::reset, &aubo_hw);
 
+  //
+  node.setParam("connected", false);
+  node.setParam("arm_powered", false);
+  node.setParam("robot_collision", false);
+  node.setParam("singularity_overspeed", false);
+  node.setParam("robot_overcurrent", false);
+
   ros::waitForShutdown();
   return 0;
 }

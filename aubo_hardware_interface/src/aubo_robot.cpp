@@ -41,6 +41,7 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_collision:
+      aubo_robot->robot_collision = true;
       ROS_FATAL("Collision: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_collisionStatusChanged:
@@ -54,18 +55,25 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_singularityOverspeed:
+      aubo_robot->singularity_overspeed = true;
       ROS_ERROR("Event Code: %d, Singularity Overspeed!: %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_currentAlarm:
+      aubo_robot->robot_overcurrent = true;
       ROS_ERROR("Event Code: %d, Current Alarm!: %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupPhase:
       ROS_INFO("Robot Startup Phase: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupDoneResult:
+      aubo_robot->arm_powered = true;
       ROS_INFO("Robot Startup Done Result: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotShutdownDone:
+      aubo_robot->arm_powered = false;
+      aubo_robot->robot_collision = false;
+      aubo_robot->singularity_overspeed = false;
+      aubo_robot->robot_overcurrent = false;
       ROS_INFO("Robot Shutdown Done: %d, %s", code, message.c_str());
       break;
 

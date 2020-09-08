@@ -48,12 +48,12 @@ bool aubo_hardware_interface::AuboHW::login(std::string host,  unsigned int port
   // Login
   if (aubo_robot.login(host, port))
   {
-    node.setParam("robot_connected", true);
+    node.setParam("connected", true);
     ROS_INFO("Connected to %s:%d", host.c_str(), port);
   }
   else
   {
-    node.setParam("robot_connected", false);
+    node.setParam("connected", false);
     ROS_ERROR("Failed to connect to %s:%d", host.c_str(), port);
     return false;
   }
@@ -116,7 +116,7 @@ bool aubo_hardware_interface::AuboHW::logout()
   if (aubo_robot.logout())
   {
     ROS_INFO("Logged out.");
-    node.setParam("robot_connected", false);
+    node.setParam("connected", false);
     return true;
   }
   else
@@ -163,10 +163,12 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
 
   if (aubo_robot.robot_startup(tool_dynamics, collision_class))
   {
+    node.setParam("arm_powered", true);
     ROS_INFO("Robot started up with collision class: %d", collision_class);
   }
   else
   {
+    node.setParam("arm_powered", false);
     ROS_ERROR("Failed to startup the Robot.");
     return false;
   }
@@ -197,12 +199,15 @@ bool aubo_hardware_interface::AuboHW::robot_startup(std_srvs::TriggerRequest &re
 
 bool aubo_hardware_interface::AuboHW::robot_shutdown()
 {
-  // refresh_cycle.stop();
   control_loop.stop();
   reset_controllers = true;
 
   if (aubo_robot.robot_shutdown())
   {
+    node.setParam("arm_powered", false);
+    node.setParam("robot_collision", false);
+    node.setParam("singularity_overspeed", false);
+    node.setParam("robot_overcurrent", false);
     ROS_INFO("Robot shutted down correctly.");
     return true;
   }
