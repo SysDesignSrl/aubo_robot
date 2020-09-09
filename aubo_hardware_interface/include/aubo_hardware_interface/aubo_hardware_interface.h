@@ -58,7 +58,6 @@ private:
   ros::NodeHandle node;
   ros::Timer refresh_cycle;
   ros::Timer control_loop;
-  ros::Time control_time;
 
   hardware_interface::JointStateInterface jnt_state_interface;
   hardware_interface::PositionJointInterface jnt_pos_interface;
@@ -129,7 +128,6 @@ public:
   {
     if (aubo_robot.soft_emergency)
     {
-      reset_controllers = true;
       control_loop.stop();
       node.setParam("soft_emergency", true);
       return;
@@ -137,7 +135,6 @@ public:
 
     if (aubo_robot.robot_collision)
     {
-      reset_controllers = true;
       control_loop.stop();
       node.setParam("robot_collision", true);
       return;
@@ -145,7 +142,6 @@ public:
 
     if (aubo_robot.singularity_overspeed)
     {
-      reset_controllers = true;
       control_loop.stop();
       node.setParam("singularity_overspeed", true);
       return;
@@ -153,20 +149,18 @@ public:
 
     if (aubo_robot.robot_overcurrent)
     {
-      reset_controllers = true;
       control_loop.stop();
       node.setParam("robot_overcurrent", true);
       return;
     }
 
     const ros::Time time = ev.current_real;
-    const ros::Duration period = time - control_time;
+    const ros::Duration period = ev.current_real - ev.last_real;
 
     read(time, period);
     controller_manager.update(time, period, reset_controllers);
     write(time, period);
 
-    control_time = time;
     reset_controllers = false;
   }
 

@@ -173,7 +173,7 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
     return false;
   }
 
-  control_time = ros::Time::now();
+  reset_controllers = true;
   control_loop.start();
 
   return true;
@@ -199,8 +199,8 @@ bool aubo_hardware_interface::AuboHW::robot_startup(std_srvs::TriggerRequest &re
 
 bool aubo_hardware_interface::AuboHW::robot_shutdown()
 {
-  control_loop.stop();
   reset_controllers = true;
+  control_loop.stop();
 
   if (aubo_robot.robot_shutdown())
   {

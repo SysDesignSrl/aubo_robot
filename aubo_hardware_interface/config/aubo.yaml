@@ -13,7 +13,7 @@ tool_dynamics:
   inertia: { xx: 0.0, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 }
     # Tool's inertial matrix
 
-collision_class: 10
+collision_class: 6
   # The collision class of the manipulator, in the range [1-10].
 
 max_joint_velocity: [ 2.62, 2.62, 2.62, 3.14, 3.14, 3.14 ]
