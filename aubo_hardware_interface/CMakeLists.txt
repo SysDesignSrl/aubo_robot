@@ -9,6 +9,8 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  std_msgs
+  std_srvs
   xmlrpcpp
   hardware_interface
   transmission_interface
@@ -108,6 +110,8 @@ catkin_package(
 #  LIBRARIES aubo_hardware_interface
   CATKIN_DEPENDS
     roscpp
+    std_msgs
+    std_srvs
     xmlrpcpp
     hardware_interface
     transmission_interface

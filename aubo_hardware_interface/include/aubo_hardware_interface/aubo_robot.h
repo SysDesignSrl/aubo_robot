@@ -29,15 +29,17 @@ private:
 public:
   aubo_robot_namespace::RobotDiagnosis robotDiagnosis;    // Robot Diagnostic
 
+  // Connection
+  bool connected = false;
+  // Status
+  bool arm_powered = false;
+  // Alarm
+  bool collision = false;
+  bool singularity_overspeed = false;
+  bool overcurrent = false;
   // Emergency
   bool soft_emergency = false;
   bool remote_emergency = false;
-  // Alarm
-  bool robot_collision = false;
-  bool singularity_overspeed = false;
-  bool robot_overcurrent = false;
-  // Status
-  bool arm_powered = false;
 
 
   bool login(std::string hostname, unsigned int port, std::string username = "AUBO", std::string password = "123456");

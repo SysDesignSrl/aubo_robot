@@ -14,12 +14,14 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
     case aubo_robot_namespace::RobotEventType::RobotEvent_armCanbusError:
       ROS_ERROR("Arm CANbus Error: %d,  %s", code, message.c_str());
       break;
+
     case aubo_robot_namespace::RobotEventType::RobotEvent_remoteHalt:
       ROS_WARN("Remote Halt: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_remoteEmergencyStop:
       ROS_FATAL("Remote Emergency Stop: %d, %s", code, message.c_str());
       break;
+
     case aubo_robot_namespace::RobotEventType::RobotEvent_jointError:
       ROS_ERROR("Joint Error: %d,  %s", code, message.c_str());
       break;
@@ -41,12 +43,13 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_collision:
-      aubo_robot->robot_collision = true;
+      aubo_robot->collision = true;
       ROS_FATAL("Collision: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_collisionStatusChanged:
       ROS_INFO("Collision Status Changed: %d, %s", code, message.c_str());
       break;
+
     case aubo_robot_namespace::RobotEventType::RobotEvent_tcpParametersSucc:
       ROS_INFO("Tool dynamic parameters Success: %d, %s", code, message.c_str());
       break;
@@ -59,9 +62,10 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       ROS_ERROR("Event Code: %d, Singularity Overspeed!: %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_currentAlarm:
-      aubo_robot->robot_overcurrent = true;
+      aubo_robot->overcurrent = true;
       ROS_ERROR("Event Code: %d, Current Alarm!: %s", code, message.c_str());
       break;
+
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupPhase:
       ROS_INFO("Robot Startup Phase: %d, %s", code, message.c_str());
       break;
@@ -71,9 +75,9 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotShutdownDone:
       aubo_robot->arm_powered = false;
-      aubo_robot->robot_collision = false;
+      aubo_robot->collision = false;
       aubo_robot->singularity_overspeed = false;
-      aubo_robot->robot_overcurrent = false;
+      aubo_robot->overcurrent = false;
       ROS_INFO("Robot Shutdown Done: %d, %s", code, message.c_str());
       break;
 
@@ -86,7 +90,9 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotControllerStateChaned:
       ROS_INFO("Event Code: %d, Robot Controller State Changed: %s", code, message.c_str());
       break;
+
     case aubo_robot_namespace::RobotEventType::RobotEvent_socketDisconnected:
+      aubo_robot->connected = false;
       ROS_INFO("Event Code: %d, Socked Disconnected: %s", code, message.c_str());
       break;
   }

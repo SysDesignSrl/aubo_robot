@@ -9,7 +9,7 @@ aubo_i3:
       publish_rate: 50
     arm_controller:
       type: position_controllers/JointTrajectoryController
-      action_monitor_rate: 200
+      action_monitor_rate: 50
       joints:
         - shoulder_joint
         - upperArm_joint
@@ -26,7 +26,7 @@ aubo_i5:
       publish_rate: 50
     arm_controller:
       type: position_controllers/JointTrajectoryController
-      action_monitor_rate: 200
+      action_monitor_rate: 50
       joints:
         - shoulder_joint
         - upperArm_joint
@@ -49,7 +49,7 @@ aubo_i7:
       type: joint_state_controller/JointStateController
       publish_rate: 50
     arm_controller:
-      action_monitor_rate: 200
+      action_monitor_rate: 50
       type: position_controllers/JointTrajectoryController
       joints:
         - shoulder_joint

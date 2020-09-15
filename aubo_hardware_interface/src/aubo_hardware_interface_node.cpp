@@ -1,6 +1,8 @@
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// std_msgs
+#include <std_msgs/Bool.h>
 // controller manager
 #include <controller_manager/controller_manager.h>
 // aubo_hardware_interface
@@ -15,6 +17,8 @@ int main(int argc, char* argv[])
   ros::NodeHandle node("~");
 
   // Parameters
+  auto freq = node.param<double>("publish_frequency", 10);
+
   auto host = node.param<std::string>("tcp/host", "localhost");
   auto port = node.param<int>("tcp/port", 8899);
 
@@ -52,13 +56,44 @@ int main(int argc, char* argv[])
   auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
   auto reset_controllers_srv = node.advertiseService("reset_controllers", &aubo_hardware_interface::AuboHW::reset, &aubo_hw);
 
-  //
-  node.setParam("connected", false);
-  node.setParam("arm_powered", false);
-  node.setParam("robot_collision", false);
-  node.setParam("singularity_overspeed", false);
-  node.setParam("robot_overcurrent", false);
+  // Published Topics
+  auto connected_pub = node.advertise<std_msgs::Bool>("connected", 1);
+  auto arm_powered_pub = node.advertise<std_msgs::Bool>("arm_powered", 1);
+  auto robot_collision_pub = node.advertise<std_msgs::Bool>("robot_collision", 1);
+  auto singularity_overspeed_pub = node.advertise<std_msgs::Bool>("singularity_overspeed", 1);
+  auto robot_overcurrent_pub = node.advertise<std_msgs::Bool>("robot_overcurrent", 1);
 
-  ros::waitForShutdown();
+
+  node.setParam("connected", false);
+
+  // Loop
+  ros::Rate rate(freq);
+  while (ros::ok())
+  {
+    rate.sleep();
+
+    ros::spinOnce();
+
+    std_msgs::Bool msg;
+
+    bool connected;
+    node.getParamCached("connected", connected);
+
+    msg.data = connected;
+    connected_pub.publish(msg);
+
+    msg.data = aubo_hw.aubo_robot.arm_powered;
+    arm_powered_pub.publish(msg);
+
+    msg.data = aubo_hw.aubo_robot.collision;
+    robot_collision_pub.publish(msg);
+
+    msg.data = aubo_hw.aubo_robot.singularity_overspeed;
+    singularity_overspeed_pub.publish(msg);
+
+    msg.data = aubo_hw.aubo_robot.overcurrent;
+    robot_overcurrent_pub.publish(msg);
+  }
+
   return 0;
 }
