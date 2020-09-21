@@ -6,16 +6,16 @@ bool aubo_hardware_interface::AuboHW::init_robot()
   std::vector<double> max_joint_acc;
   if (node.getParam("aubo/max_joint_acceleration", max_joint_acc))
   {
-    aubo_robot.set_max_joint_acceleration(max_joint_acc);
+    robot.set_max_joint_acceleration(max_joint_acc);
   }
 
   std::vector<double> max_joint_vel;
   if (node.getParam("aubo/max_joint_velocity", max_joint_vel))
   {
-    aubo_robot.set_max_joint_velocity(max_joint_vel);
+    robot.set_max_joint_velocity(max_joint_vel);
   }
 
-  aubo_robot.get_max_joint_acceleration(max_joint_acc);
+  robot.get_max_joint_acceleration(max_joint_acc);
   {
     std::stringstream ss;
     ss << "[ ";
@@ -27,7 +27,7 @@ bool aubo_hardware_interface::AuboHW::init_robot()
     ROS_DEBUG_STREAM("max joint acceleration: " << ss.str() << "[rad/s^2]");
   }
 
-  aubo_robot.get_max_joint_velocity(max_joint_vel);
+  robot.get_max_joint_velocity(max_joint_vel);
   {
     std::stringstream ss;
     ss << "[ ";
@@ -46,7 +46,7 @@ bool aubo_hardware_interface::AuboHW::init_robot()
 bool aubo_hardware_interface::AuboHW::login(std::string host,  unsigned int port = 8899)
 {
   // Login
-  if (aubo_robot.login(host, port))
+  if (robot.login(host, port))
   {
     node.setParam("connected", true);
     ROS_INFO("Connected to %s:%d", host.c_str(), port);
@@ -57,7 +57,7 @@ bool aubo_hardware_interface::AuboHW::login(std::string host,  unsigned int port
     return false;
   }
 
-  if (!aubo_robot.register_event_info())
+  if (!robot.register_event_info())
   {
     ROS_ERROR("Failed to register to robot events");
     return false;
@@ -68,7 +68,7 @@ bool aubo_hardware_interface::AuboHW::login(std::string host,  unsigned int port
     return false;
   }
 
-  if (aubo_robot.enable_tcp_canbus_mode())
+  if (robot.enable_tcp_canbus_mode())
   {
     ROS_INFO("Enabled TCP 2 CANbus Mode.");
   }
@@ -103,7 +103,7 @@ bool aubo_hardware_interface::AuboHW::login(std_srvs::TriggerRequest &req, std_s
 
 bool aubo_hardware_interface::AuboHW::logout()
 {
-  if (aubo_robot.disable_tcp_canbus_mode())
+  if (robot.disable_tcp_canbus_mode())
   {
     ROS_INFO("Disabled TCP 2 CANbus Mode.");
   }
@@ -112,7 +112,7 @@ bool aubo_hardware_interface::AuboHW::logout()
     ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
   }
 
-  if (aubo_robot.logout())
+  if (robot.logout())
   {
     ROS_INFO("Logged out.");
     node.setParam("connected", false);
@@ -160,7 +160,7 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
     ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
   }
 
-  if (aubo_robot.robot_startup(tool_dynamics, collision_class))
+  if (robot.robot_startup(tool_dynamics, collision_class))
   {
     ROS_INFO("Robot started up with collision class: %d", collision_class);
   }
@@ -199,7 +199,7 @@ bool aubo_hardware_interface::AuboHW::robot_shutdown()
   reset_controllers = true;
   control_loop.stop();
 
-  if (aubo_robot.robot_shutdown())
+  if (robot.robot_shutdown())
   {
     ROS_INFO("Robot shutted down correctly.");
     return true;

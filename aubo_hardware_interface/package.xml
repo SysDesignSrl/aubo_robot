@@ -14,6 +14,7 @@
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>industrial_msgs</depend>
   <depend>xmlrpcpp</depend>
   <depend>hardware_interface</depend>
   <depend>transmission_interface</depend>

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   std_srvs
+  industrial_msgs
   xmlrpcpp
   hardware_interface
   transmission_interface
@@ -112,6 +113,7 @@ catkin_package(
     roscpp
     std_msgs
     std_srvs
+    industrial_msgs
     xmlrpcpp
     hardware_interface
     transmission_interface

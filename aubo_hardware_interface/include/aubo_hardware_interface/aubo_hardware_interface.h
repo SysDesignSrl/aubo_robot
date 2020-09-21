@@ -41,13 +41,12 @@ private:
   // Emergency
   bool soft_emergency;
   bool remote_emergency;
-
-  bool robot_collision;
+  // Status
   bool force_control_mode;
-  bool brake_status;
   // Alarm
-  bool singularity_overspeed_alarm;
-  bool robot_current_alarm;
+  bool robot_collision;
+  bool singularity_overspeed;
+  bool robot_overcurrent;
   // CAN bus
   uint16 can_buffer_size;
   uint16 can_data_size;
@@ -55,7 +54,6 @@ private:
 
 
   ros::NodeHandle node;
-  ros::Timer refresh_cycle;
   ros::Timer control_loop;
 
   hardware_interface::JointStateInterface jnt_state_interface;
@@ -67,7 +65,7 @@ private:
   std::vector<double> j_eff, j_eff_cmd;
 
 public:
-  aubo::AuboRobot aubo_robot;
+  aubo::AuboRobot robot;
 
   AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) :
     node(node),
@@ -126,25 +124,25 @@ public:
 
   void control_loop_cb(const ros::TimerEvent &ev)
   {
-    if (aubo_robot.soft_emergency)
+    if (robot.soft_emergency)
     {
       control_loop.stop();
       return;
     }
 
-    if (aubo_robot.collision)
+    if (robot.collision)
     {
       control_loop.stop();
       return;
     }
 
-    if (aubo_robot.singularity_overspeed)
+    if (robot.singularity_overspeed)
     {
       control_loop.stop();
       return;
     }
 
-    if (aubo_robot.overcurrent)
+    if (robot.overcurrent)
     {
       control_loop.stop();
       return;
@@ -215,7 +213,7 @@ public:
 
   void read(const ros::Time &time, const ros::Duration &period)
   {
-    if (!aubo_robot.read(j_pos))
+    if (!robot.read(j_pos))
     {
       reset_controllers = true;
       ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions state from robot!");
@@ -225,7 +223,7 @@ public:
 
   void write(const ros::Time &time, const ros::Duration &period)
   {
-    if (!aubo_robot.write(j_pos_cmd))
+    if (!robot.write(j_pos_cmd))
     {
       reset_controllers = true;
       ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
