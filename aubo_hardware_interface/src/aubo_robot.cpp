@@ -56,14 +56,17 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
     case aubo_robot_namespace::RobotEventType::RobotEvent_ArmPowerOff:
       ROS_WARN("Arm Power Off: %d, %s", code, message.c_str());
       break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_powerChanged:
+      ROS_INFO("Power Changed: %d, %s", code, message.c_str());
+      break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_singularityOverspeed:
       aubo_robot->singularity_overspeed = true;
-      ROS_ERROR("Event Code: %d, Singularity Overspeed!: %s", code, message.c_str());
+      ROS_ERROR("Singularity Overspeed!: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_currentAlarm:
       aubo_robot->overcurrent = true;
-      ROS_ERROR("Event Code: %d, Current Alarm!: %s", code, message.c_str());
+      ROS_ERROR("OverCurrent Alarm!: %d, %s", code, message.c_str());
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupPhase:
@@ -82,18 +85,39 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotSetPowerOnDone:
-      ROS_INFO("Event Code: %d, Robot Set Power Done: %s", code, message.c_str());
+      ROS_INFO("Robot Set Power Done: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotReleaseBrakeDone:
-      ROS_INFO("Event Code: %d, Release Brake Done: %s", code, message.c_str());
+      ROS_INFO("Release Brake Done: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotControllerStateChaned:
-      ROS_INFO("Event Code: %d, Robot Controller State Changed: %s", code, message.c_str());
+      ROS_INFO("Robot Controller State Changed: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_robotControllerError:
+      ROS_ERROR("Robot Controller Error: %d, %s", code, message.c_str());
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_socketDisconnected:
       aubo_robot->connected = false;
-      ROS_INFO("Event Code: %d, Socked Disconnected: %s", code, message.c_str());
+      ROS_INFO("Socked Disconnected: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_robotControlException:
+      ROS_ERROR("Robot Control Exception: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_trackPlayInterrupte:
+      ROS_WARN("Track Play Interrupt: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_InterfacBoardSafeIoEvent:
+      ROS_WARN("Interface Board Safe IO Event: %d, %s", code, message.c_str());
+      break;
+
+    case aubo_robot_namespace::RobotEventType::RobotEvent_RobotHandShakeSucc:
+      ROS_INFO("Robot Handshake Success: %d, %s", code, message.c_str());
+      break;
+    case aubo_robot_namespace::RobotEventType::RobotEvent_RobotHandShakeFailed:
+      ROS_WARN("Robot Handshake Failed: %d, %s", code, message.c_str());
       break;
   }
 }

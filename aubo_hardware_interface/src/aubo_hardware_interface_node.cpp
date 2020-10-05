@@ -80,8 +80,6 @@ int main(int argc, char* argv[])
   ros::Rate rate(freq);
   while (ros::ok())
   {
-    rate.sleep();
-
     ros::spinOnce();
 
     const ros::Time time = ros::Time::now();
@@ -106,17 +104,34 @@ int main(int argc, char* argv[])
     msg.data = aubo_hw.robot.overcurrent;
     robot_overcurrent_pub.publish(msg);
 
-    //
-    industrial_msgs::RobotStatus robot_status_msg;
-    robot_status_msg.header.stamp = time;
-    robot_status_msg.mode.val = industrial_msgs::RobotMode::AUTO;
-    robot_status_msg.e_stopped.val = (aubo_hw.robot.soft_emergency || aubo_hw.robot.remote_emergency) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
-    robot_status_msg.drives_powered.val = (aubo_hw.robot.arm_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
-    robot_status_msg.motion_possible.val = (aubo_hw.robot.arm_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
-    robot_status_msg.in_motion.val = industrial_msgs::TriState::UNKNOWN;
-    robot_status_msg.in_error.val = (aubo_hw.robot.collision || aubo_hw.robot.singularity_overspeed || aubo_hw.robot.overcurrent) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
-    robot_status_msg.error_code = 0;
-    robot_status_pub.publish(robot_status_msg);
+    if (!connected)
+    {
+      industrial_msgs::RobotStatus msg;
+      msg.header.stamp = time;
+      msg.mode.val = industrial_msgs::RobotMode::UNKNOWN;
+      msg.e_stopped.val = industrial_msgs::TriState::UNKNOWN;
+      msg.drives_powered.val = industrial_msgs::TriState::UNKNOWN;
+      msg.motion_possible.val = industrial_msgs::TriState::UNKNOWN;
+      msg.in_motion.val = industrial_msgs::TriState::UNKNOWN;
+      msg.in_error.val = industrial_msgs::TriState::UNKNOWN;
+      msg.error_code = 0;
+      robot_status_pub.publish(msg);
+    }
+    else
+    {
+      industrial_msgs::RobotStatus msg;
+      msg.header.stamp = time;
+      msg.mode.val = industrial_msgs::RobotMode::AUTO;
+      msg.e_stopped.val = (aubo_hw.robot.soft_emergency || aubo_hw.robot.remote_emergency) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.drives_powered.val = (aubo_hw.robot.arm_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.motion_possible.val = (aubo_hw.robot.arm_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.in_motion.val = industrial_msgs::TriState::UNKNOWN;
+      msg.in_error.val = (aubo_hw.robot.collision || aubo_hw.robot.singularity_overspeed || aubo_hw.robot.overcurrent) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.error_code = 0;
+      robot_status_pub.publish(msg);
+    }
+
+    rate.sleep();
   }
 
   return 0;
