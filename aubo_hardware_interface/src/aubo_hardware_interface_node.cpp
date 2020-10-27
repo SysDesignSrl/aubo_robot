@@ -63,11 +63,11 @@ int main(int argc, char* argv[])
   auto logout_srv = node.advertiseService("logout", &aubo_hardware_interface::AuboHW::logout, &aubo_hw);
   auto robot_startup_srv = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
   auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
-  auto reset_controllers_srv = node.advertiseService("reset_controllers", &aubo_hardware_interface::AuboHW::reset, &aubo_hw);
+  auto print_diagnostic_info_srv = node.advertiseService("print_diagnostic_info", &aubo_hardware_interface::AuboHW::print_diagnostic_info, &aubo_hw);
 
   // Published Topics
   auto connected_pub = node.advertise<std_msgs::Bool>("connected", 1);
-  auto arm_powered_pub = node.advertise<std_msgs::Bool>("arm_powered", 1);
+  auto arm_power_status_pub = node.advertise<std_msgs::Bool>("arm_power_status", 1);
   auto robot_collision_pub = node.advertise<std_msgs::Bool>("robot_collision", 1);
   auto singularity_overspeed_pub = node.advertise<std_msgs::Bool>("singularity_overspeed", 1);
   auto robot_overcurrent_pub = node.advertise<std_msgs::Bool>("robot_overcurrent", 1);
@@ -92,16 +92,16 @@ int main(int argc, char* argv[])
     msg.data = connected;
     connected_pub.publish(msg);
 
-    msg.data = aubo_hw.robot.arm_powered;
-    arm_powered_pub.publish(msg);
+    msg.data = aubo_hw.robot_diagnostic.arm_power_status;
+    arm_power_status_pub.publish(msg);
 
-    msg.data = aubo_hw.robot.collision;
+    msg.data = aubo_hw.robot_diagnostic.robot_collision;
     robot_collision_pub.publish(msg);
 
-    msg.data = aubo_hw.robot.singularity_overspeed;
+    msg.data = aubo_hw.robot_diagnostic.singularity_overspeed;
     singularity_overspeed_pub.publish(msg);
 
-    msg.data = aubo_hw.robot.overcurrent;
+    msg.data = aubo_hw.robot_diagnostic.robot_overcurrent;
     robot_overcurrent_pub.publish(msg);
 
     if (!connected)
@@ -119,14 +119,27 @@ int main(int argc, char* argv[])
     }
     else
     {
+      bool e_stopped = aubo_hw.robot_diagnostic.soft_emergency ||
+                       aubo_hw.robot_diagnostic.remote_emergency;
+
+      bool drives_powered = aubo_hw.robot_diagnostic.arm_power_status;
+
+      bool in_error = aubo_hw.robot.robot_collision ||
+                      aubo_hw.robot.singularity_overspeed ||
+                      aubo_hw.robot.robot_overcurrent;
+
+      bool motion_possible = drives_powered &&
+                             !in_error &&
+                             !aubo_hw.robot_diagnostic.brake_status;
+
       industrial_msgs::RobotStatus msg;
       msg.header.stamp = time;
-      msg.mode.val = industrial_msgs::RobotMode::AUTO;
-      msg.e_stopped.val = (aubo_hw.robot.soft_emergency || aubo_hw.robot.remote_emergency) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
-      msg.drives_powered.val = (aubo_hw.robot.arm_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
-      msg.motion_possible.val = (aubo_hw.robot.arm_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.mode.val = industrial_msgs::RobotMode::UNKNOWN;
+      msg.e_stopped.val = (e_stopped) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.drives_powered.val = (drives_powered) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.motion_possible.val = (motion_possible) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
       msg.in_motion.val = industrial_msgs::TriState::UNKNOWN;
-      msg.in_error.val = (aubo_hw.robot.collision || aubo_hw.robot.singularity_overspeed || aubo_hw.robot.overcurrent) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
+      msg.in_error.val = (in_error) ? industrial_msgs::TriState::TRUE : industrial_msgs::TriState::FALSE;
       msg.error_code = 0;
       robot_status_pub.publish(msg);
     }

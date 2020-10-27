@@ -67,7 +67,7 @@ void AuboKinematicsPlugin::getRandomConfiguration(const KDL::JntArray &seed_stat
   }
 
   joint_model_group_->getVariableRandomPositionsNearBy(state_->getRandomNumberGenerator(), values, near, consistency_limits_mimic);
-  
+
   for (std::size_t i = 0; i < dimension_; ++i)
   {
     bool skip = false;
@@ -120,7 +120,7 @@ bool AuboKinematicsPlugin::initialize(const std::string &robot_description,
   robot_model::JointModelGroup* joint_model_group = robot_model_->getJointModelGroup(group_name);
   if (!joint_model_group)
     return false;
-  
+
   if(!joint_model_group->isChain())
   {
     ROS_ERROR_NAMED("kdl","Group '%s' is not a chain", group_name.c_str());
@@ -200,7 +200,7 @@ bool AuboKinematicsPlugin::initialize(const std::string &robot_description,
   for (std::size_t i = 0; i < kdl_chain_.getNrOfSegments(); ++i)
   {
     const robot_model::JointModel *jm = robot_model_->getJointModel(kdl_chain_.segments[i].getJoint().getName());
-    
+
     //first check whether it belongs to the set of active joints in the group
     if (jm->getMimic() == NULL && jm->getVariableCount() > 0)
     {

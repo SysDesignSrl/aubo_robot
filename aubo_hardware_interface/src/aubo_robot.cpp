@@ -43,7 +43,7 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_collision:
-      aubo_robot->collision = true;
+      aubo_robot->robot_collision = true;
       ROS_FATAL("Collision: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_collisionStatusChanged:
@@ -65,7 +65,7 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       ROS_ERROR("Singularity Overspeed!: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_currentAlarm:
-      aubo_robot->overcurrent = true;
+      aubo_robot->robot_overcurrent = true;
       ROS_ERROR("OverCurrent Alarm!: %d, %s", code, message.c_str());
       break;
 
@@ -73,14 +73,12 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       ROS_INFO("Robot Startup Phase: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotStartupDoneResult:
-      aubo_robot->arm_powered = true;
       ROS_INFO("Robot Startup Done Result: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotShutdownDone:
-      aubo_robot->arm_powered = false;
-      aubo_robot->collision = false;
+      aubo_robot->robot_collision = false;
       aubo_robot->singularity_overspeed = false;
-      aubo_robot->overcurrent = false;
+      aubo_robot->robot_overcurrent = false;
       ROS_INFO("Robot Shutdown Done: %d, %s", code, message.c_str());
       break;
 
@@ -305,20 +303,6 @@ void aubo::AuboRobot::get_max_joint_velocity(std::vector<double> &result)
 }
 
 
-bool aubo::AuboRobot::get_robot_diagnostic_info()
-{
-  int error_code;
-
-  error_code = service_interface.robotServiceGetRobotDiagnosisInfo(robotDiagnosis);
-  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
-  {
-    return false;
-  }
-
-  return true;
-}
-
-
 bool aubo::AuboRobot::get_digital_input(int addr, bool &value)
 {
   int error_code;
@@ -516,6 +500,20 @@ bool aubo::AuboRobot::register_event_info()
   int error_code;
 
   error_code = service_interface.robotServiceRegisterRobotEventInfoCallback(event_info_cb, this);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+
+bool aubo::AuboRobot::get_robot_diagnostic_info()
+{
+  int error_code;
+
+  error_code = service_interface.robotServiceGetRobotDiagnosisInfo(robotDiagnosis);
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     return false;

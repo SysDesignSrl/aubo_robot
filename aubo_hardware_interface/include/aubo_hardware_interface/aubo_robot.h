@@ -32,39 +32,30 @@ public:
   // Connection
   bool connected = false;
   // Status
-  bool arm_powered = false;
+  bool arm_power_status = false;
   // Alarm
-  bool collision = false;
+  bool robot_collision = false;
   bool singularity_overspeed = false;
-  bool overcurrent = false;
+  bool robot_overcurrent = false;
   // Emergency
   bool soft_emergency = false;
   bool remote_emergency = false;
 
 
   bool login(std::string hostname, unsigned int port, std::string username = "AUBO", std::string password = "123456");
-
   bool logout();
 
-
   bool robot_startup(XmlRpc::XmlRpcValue &tool_dynamics, unsigned int collision_class = 6);
-
   bool robot_shutdown();
 
-
   bool enable_tcp_canbus_mode();
-
   bool disable_tcp_canbus_mode();
 
-
   bool set_max_joint_acceleration(const std::vector<double> &value);
-
   void get_max_joint_acceleration(std::vector<double> &result);
 
   bool set_max_joint_velocity(const std::vector<double> &value);
-
   void get_max_joint_velocity(std::vector<double> &result);
-
 
   bool get_digital_input(int addr, bool &value);
   bool get_digital_input(std::string name, bool &value);
@@ -79,9 +70,7 @@ public:
   bool set_analog_output(std::string name, double value);
 
   bool get_digital_inputs(std::vector<bool> &digital_inputs);
-
   bool get_analog_inputs(std::vector<double> &analog_inputs);
-
 
   bool get_robot_diagnostic_info();
 

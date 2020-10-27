@@ -8,8 +8,7 @@
   <arg unless="$(arg config)" name="command_args" value="" />
   <arg     if="$(arg config)" name="command_args" value="-d $(find aubo_i5_moveit_config)/launch/moveit.rviz" />
 
-  <node name="rviz" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz"
-    args="$(arg command_args)" output="screen">
+  <node name="rviz" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" args="$(arg command_args)" output="log">
     <rosparam command="load" file="$(find aubo_i5_moveit_config)/config/kinematics.yaml"/>
   </node>
 

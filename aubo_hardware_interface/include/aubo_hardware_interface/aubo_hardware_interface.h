@@ -10,6 +10,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 // std_srvs
+#include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
 
 // hardware_interface
@@ -31,27 +32,6 @@ private:
   controller_manager::ControllerManager controller_manager;
   bool reset_controllers = true;
 
-  /*** Diagnostinc Info ***/
-
-  // Arm
-  bool arm_power_status;
-  double arm_power_current;
-  double arm_power_voltage;
-  uint8 arm_canbus_status;
-  // Emergency
-  bool soft_emergency;
-  bool remote_emergency;
-  // Status
-  bool force_control_mode;
-  // Alarm
-  bool robot_collision;
-  bool singularity_overspeed;
-  bool robot_overcurrent;
-  // CAN bus
-  uint16 can_buffer_size;
-  uint16 can_data_size;
-  uint8 can_data_warning;
-
 
   ros::NodeHandle node;
   ros::Timer control_loop;
@@ -67,59 +47,46 @@ private:
 public:
   aubo::AuboRobot robot;
 
+  // Diagnostic Info
+  struct
+  {
+    bool arm_power_status;              // The switch status (on, off) of robot 48V power
+    double arm_power_current;           // The current of robot 48V power
+    double arm_power_voltage;           // The voltage of robot 48V power
+    uint8 arm_canbus_status;            // 0x00: No error 0xff: CAN bus error
+
+    bool remote_halt;                   // Remote halt signal
+    bool soft_emergency;                // Robot soft emergency
+    bool remote_emergency;              // Remote emergency sugnal
+
+    bool robot_collision;               // Collision detection bit
+    bool static_collision;              // Static collision detection switch
+    uint8 joint_collision;              // Joint collision detection, each joint occupies 1 bit, 0-collision inexistence 1-collision existence
+
+    bool force_control_mode;            // The flag bit of robot starting force control mode
+    bool brake_status;                  // Brake status
+    bool orpe_status;                   // The status bit of the software (ORPE)
+
+    bool encoder_error;                 // Magnetic encoder error status
+    bool encoder_lines_error;           // Optical-electricity encoders are not same, 0-no error, 1-error
+    bool joint_error;                   // Joint error status
+    uint8 tool_io_error;                // Tool error
+
+    bool singularity_overspeed;         // The overspeed alarm of robot singularity
+    bool robot_overcurrent;             // The alarm of robot current flow
+
+    bool robot_mounting_pose_warning;   // The mounting position of the robot is wrong (Working on the force control only)
+
+    uint16 can_buffer_size;             // The size of the mac buffer
+    uint16 can_data_size;               // The valid data size of the mac buffer
+    uint8 can_data_warning;             // The mac data interruption
+  }
+  robot_diagnostic;
+
+
   AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) :
     node(node),
-    controller_manager(this, node)
-  {
-    // ros::Duration period(1.0);
-    // refresh_cycle = node.createTimer(period, &aubo_hardware_interface::AuboHW::refresh_cycle_cb, this, false, false);
-  }
-
-
-  // void refresh_cycle_cb(const ros::TimerEvent &ev)
-  // {
-  //   if (!aubo_robot.get_robot_diagnostic_info())
-  //   {
-  //     ROS_WARN("Failed to retrieve diagnostic info from the robot!");
-  //   }
-  //
-  //   arm_power_status = aubo_robot.robotDiagnosis.armPowerStatus;                // The switch status (on, off)of robot 48V power
-  //   arm_power_current = aubo_robot.robotDiagnosis.armPowerCurrent;              // The current of robot 48V power
-  //   arm_power_voltage = aubo_robot.robotDiagnosis.armPowerVoltage;              // The voltage of robot 48V power
-  //   arm_canbus_status = aubo_robot.robotDiagnosis.armCanbusStatus;              // 0x00: No error 0xff:CAN bus error
-  //
-  //   soft_emergency = aubo_robot.robotDiagnosis.softEmergency;                   // Robot soft emergency
-  //   remote_emergency = aubo_robot.robotDiagnosis.remoteEmergency;               // Remote emergency signal
-  //
-  //   robot_collision = aubo_robot.robotDiagnosis.robotCollision;                 // Collision detection flag
-  //
-  //   force_control_mode = aubo_robot.robotDiagnosis.forceControlMode;            // Force Control Mode flag
-  //   brake_status = aubo_robot.robotDiagnosis.brakeStuats;                       // Brake status
-  //
-  //   singularity_overspeed_alarm = aubo_robot.robotDiagnosis.singularityOverSpeedAlarm;  // The overspeed alarm of robot singularity
-  //   robot_current_alarm = aubo_robot.robotDiagnosis.robotCurrentAlarm;                  // The alarm of robot current flow
-  //
-  //   can_buffer_size = aubo_robot.robotDiagnosis.macTargetPosBufferSize;         // The maximum size of the CANbus buffer
-  //   can_data_size = aubo_robot.robotDiagnosis.macTargetPosDataSize;             // The current data size of the CANbus buffer
-  //   can_data_warning = aubo_robot.robotDiagnosis.macDataInterruptWarning;       // The CANbus buffer data interruption
-  //
-  //   ROS_ERROR_COND(arm_canbus_status != 0x00, "Arm CAN bus Error: 0x%.2X", arm_canbus_status);
-  //
-  //   ROS_ERROR_COND(soft_emergency, "Soft Emergency.");
-  //   ROS_FATAL_COND(remote_emergency, "Remote Emergency!");
-  //
-  //   ROS_FATAL_COND(robot_collision, "Robot collision!");
-  //
-  //   ROS_INFO_COND(force_control_mode, "Force Control mode enabled.");
-  //   ROS_WARN_COND(brake_status, "Brake active.");
-  //
-  //   ROS_FATAL_COND(singularity_overspeed_alarm, "Singularity Overspeed!");
-  //   ROS_FATAL_COND(robot_current_alarm, "Robot Current Overflow!");
-  //
-  //   ROS_DEBUG_THROTTLE(0.0, "CAN buffer size: %d", can_buffer_size);
-  //   ROS_DEBUG_THROTTLE(0.0, "CAN data size: %d", can_data_size);
-  //   ROS_WARN_COND(can_data_warning != 0x00, "CAN data Warining: %d", can_data_warning);
-  // }
+    controller_manager(this, node) { }
 
 
   void control_loop_cb(const ros::TimerEvent &ev)
@@ -127,24 +94,35 @@ public:
     if (robot.soft_emergency)
     {
       control_loop.stop();
+      print_diagnostic_info();
       return;
     }
 
-    if (robot.collision)
+    if (robot.remote_emergency)
     {
       control_loop.stop();
+      print_diagnostic_info();
+      return;
+    }
+
+    if (robot.robot_collision)
+    {
+      control_loop.stop();
+      print_diagnostic_info();
       return;
     }
 
     if (robot.singularity_overspeed)
     {
       control_loop.stop();
+      print_diagnostic_info();
       return;
     }
 
-    if (robot.overcurrent)
+    if (robot.robot_overcurrent)
     {
       control_loop.stop();
+      print_diagnostic_info();
       return;
     }
 
@@ -193,22 +171,19 @@ public:
   bool init_robot();
 
   bool login(std::string host,  unsigned int port);
-
   bool login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   bool logout();
-
   bool logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   bool robot_startup();
-
   bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   bool robot_shutdown();
-
   bool robot_shutdown(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
-  bool reset(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+  void print_diagnostic_info();
+  bool print_diagnostic_info(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res);
 
 
   void read(const ros::Time &time, const ros::Duration &period)

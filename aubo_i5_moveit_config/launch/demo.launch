@@ -50,7 +50,7 @@
   </include>
 
   <!-- If database loading was enabled, start mongodb as well -->
-  <include file="$(find aubo_i5_moveit_config)/launch/default_warehouse_db.launch" if="$(arg db)">
+  <include if="$(arg db)" file="$(find aubo_i5_moveit_config)/launch/default_warehouse_db.launch">
     <arg name="moveit_warehouse_database_path" value="$(arg db_path)"/>
   </include>
 
