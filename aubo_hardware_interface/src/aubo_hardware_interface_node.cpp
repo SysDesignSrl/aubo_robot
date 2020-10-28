@@ -130,7 +130,8 @@ int main(int argc, char* argv[])
 
       bool motion_possible = drives_powered &&
                              !in_error &&
-                             !aubo_hw.robot_diagnostic.brake_status;
+                             !aubo_hw.robot_diagnostic.brake_status &&
+                             aubo_hw.control_loop.hasStarted();
 
       industrial_msgs::RobotStatus msg;
       msg.header.stamp = time;

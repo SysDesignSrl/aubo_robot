@@ -32,9 +32,7 @@ private:
   controller_manager::ControllerManager controller_manager;
   bool reset_controllers = true;
 
-
   ros::NodeHandle node;
-  ros::Timer control_loop;
 
   hardware_interface::JointStateInterface jnt_state_interface;
   hardware_interface::PositionJointInterface jnt_pos_interface;
@@ -43,50 +41,6 @@ private:
   std::vector<double> j_pos, j_pos_cmd;
   std::vector<double> j_vel, j_vel_cmd;
   std::vector<double> j_eff, j_eff_cmd;
-
-public:
-  aubo::AuboRobot robot;
-
-  // Diagnostic Info
-  struct
-  {
-    bool arm_power_status;              // The switch status (on, off) of robot 48V power
-    double arm_power_current;           // The current of robot 48V power
-    double arm_power_voltage;           // The voltage of robot 48V power
-    uint8 arm_canbus_status;            // 0x00: No error 0xff: CAN bus error
-
-    bool remote_halt;                   // Remote halt signal
-    bool soft_emergency;                // Robot soft emergency
-    bool remote_emergency;              // Remote emergency sugnal
-
-    bool robot_collision;               // Collision detection bit
-    bool static_collision;              // Static collision detection switch
-    uint8 joint_collision;              // Joint collision detection, each joint occupies 1 bit, 0-collision inexistence 1-collision existence
-
-    bool force_control_mode;            // The flag bit of robot starting force control mode
-    bool brake_status;                  // Brake status
-    bool orpe_status;                   // The status bit of the software (ORPE)
-
-    bool encoder_error;                 // Magnetic encoder error status
-    bool encoder_lines_error;           // Optical-electricity encoders are not same, 0-no error, 1-error
-    bool joint_error;                   // Joint error status
-    uint8 tool_io_error;                // Tool error
-
-    bool singularity_overspeed;         // The overspeed alarm of robot singularity
-    bool robot_overcurrent;             // The alarm of robot current flow
-
-    bool robot_mounting_pose_warning;   // The mounting position of the robot is wrong (Working on the force control only)
-
-    uint16 can_buffer_size;             // The size of the mac buffer
-    uint16 can_data_size;               // The valid data size of the mac buffer
-    uint8 can_data_warning;             // The mac data interruption
-  }
-  robot_diagnostic;
-
-
-  AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) :
-    node(node),
-    controller_manager(this, node) { }
 
 
   void control_loop_cb(const ros::TimerEvent &ev)
@@ -135,6 +89,52 @@ public:
 
     reset_controllers = false;
   }
+
+public:
+  aubo::AuboRobot robot;
+
+  ros::Timer control_loop;
+
+  // Diagnostic Info
+  struct
+  {
+    bool arm_power_status;              // The switch status (on, off) of robot 48V power
+    double arm_power_current;           // The current of robot 48V power
+    double arm_power_voltage;           // The voltage of robot 48V power
+    uint8 arm_canbus_status;            // 0x00: No error 0xff: CAN bus error
+
+    bool remote_halt;                   // Remote halt signal
+    bool soft_emergency;                // Robot soft emergency
+    bool remote_emergency;              // Remote emergency sugnal
+
+    bool robot_collision;               // Collision detection bit
+    bool static_collision;              // Static collision detection switch
+    uint8 joint_collision;              // Joint collision detection, each joint occupies 1 bit, 0-collision inexistence 1-collision existence
+
+    bool force_control_mode;            // The flag bit of robot starting force control mode
+    bool brake_status;                  // Brake status
+    bool orpe_status;                   // The status bit of the software (ORPE)
+
+    bool encoder_error;                 // Magnetic encoder error status
+    bool encoder_lines_error;           // Optical-electricity encoders are not same, 0-no error, 1-error
+    bool joint_error;                   // Joint error status
+    uint8 tool_io_error;                // Tool error
+
+    bool singularity_overspeed;         // The overspeed alarm of robot singularity
+    bool robot_overcurrent;             // The alarm of robot current flow
+
+    bool robot_mounting_pose_warning;   // The mounting position of the robot is wrong (Working on the force control only)
+
+    uint16 can_buffer_size;             // The size of the mac buffer
+    uint16 can_data_size;               // The valid data size of the mac buffer
+    uint8 can_data_warning;             // The mac data interruption
+  }
+  robot_diagnostic;
+
+
+  AuboHW(const ros::NodeHandle &node = ros::NodeHandle()) :
+    node(node),
+    controller_manager(this, node) { }
 
 
   bool init(double loop_hz, const std::vector<std::string> &joints)
