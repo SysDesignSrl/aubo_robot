@@ -19,6 +19,7 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       ROS_WARN("Remote Halt: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_remoteEmergencyStop:
+      aubo_robot->remote_emergency = true;
       ROS_FATAL("Remote Emergency Stop: %d, %s", code, message.c_str());
       break;
 
@@ -76,9 +77,11 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       ROS_INFO("Robot Startup Done Result: %d, %s", code, message.c_str());
       break;
     case aubo_robot_namespace::RobotEventType::RobotEvent_robotShutdownDone:
+      aubo_robot->remote_emergency = false;
       aubo_robot->robot_collision = false;
       aubo_robot->singularity_overspeed = false;
       aubo_robot->robot_overcurrent = false;
+      aubo_robot->safe_io = false;
       ROS_INFO("Robot Shutdown Done: %d, %s", code, message.c_str());
       break;
 
@@ -108,6 +111,7 @@ void event_info_cb(const aubo_robot_namespace::RobotEventInfo *eventInfo, void *
       break;
 
     case aubo_robot_namespace::RobotEventType::RobotEvent_InterfacBoardSafeIoEvent:
+      aubo_robot->safe_io = true;
       ROS_WARN("Interface Board Safe IO Event: %d, %s", code, message.c_str());
       break;
 

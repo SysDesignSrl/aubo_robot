@@ -47,35 +47,48 @@ private:
   {
     if (robot.soft_emergency)
     {
-      control_loop.stop();
+      // control_loop.stop();
+      robot_shutdown();
       print_diagnostic_info();
       return;
     }
 
     if (robot.remote_emergency)
     {
-      control_loop.stop();
+      // control_loop.stop();
+      robot_shutdown();
       print_diagnostic_info();
       return;
     }
 
     if (robot.robot_collision)
     {
-      control_loop.stop();
+      // control_loop.stop();
+      robot_shutdown();
       print_diagnostic_info();
       return;
     }
 
     if (robot.singularity_overspeed)
     {
-      control_loop.stop();
+      // control_loop.stop();
+      robot_shutdown();
       print_diagnostic_info();
       return;
     }
 
     if (robot.robot_overcurrent)
     {
-      control_loop.stop();
+      // control_loop.stop();
+      robot_shutdown();
+      print_diagnostic_info();
+      return;
+    }
+
+    if (robot.safe_io)
+    {
+      // control_loop.stop();
+      robot_shutdown();
       print_diagnostic_info();
       return;
     }

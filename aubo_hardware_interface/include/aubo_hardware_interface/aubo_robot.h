@@ -40,6 +40,8 @@ public:
   // Emergency
   bool soft_emergency = false;
   bool remote_emergency = false;
+  // Safe IO
+  bool safe_io = false;
 
 
   bool login(std::string hostname, unsigned int port, std::string username = "AUBO", std::string password = "123456");
