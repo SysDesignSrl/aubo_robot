@@ -85,22 +85,21 @@ private:
       return;
     }
 
-    if (robot.safe_io)
-    {
-      // control_loop.stop();
-      robot_shutdown();
-      print_diagnostic_info();
-      return;
-    }
+    // if (robot.safe_io)
+    // {
+    //   // control_loop.stop();
+    //   robot_shutdown();
+    //   print_diagnostic_info();
+    //   return;
+    // }
 
     const ros::Time time = ev.current_real;
     const ros::Duration period = ev.current_real - ev.last_real;
 
     read(time, period);
     controller_manager.update(time, period, reset_controllers);
-    write(time, period);
-
     reset_controllers = false;
+    write(time, period);
   }
 
 public:
