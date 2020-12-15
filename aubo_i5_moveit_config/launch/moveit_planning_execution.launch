@@ -19,7 +19,7 @@
 
   <!-- Launch Drivers -->
   <include file="$(find aubo_hardware_interface)/launch/aubo_i5.launch">
-    <arg name="host" value="192.168.242.246"/>
+    <arg name="host" value="192.168.242.241"/>
     <arg name="port" value="8899"/>
   </include>
 

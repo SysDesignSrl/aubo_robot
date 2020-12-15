@@ -5,8 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /MotionPlanning1
-        - /MotionPlanning1/Scene Robot1
-        - /MotionPlanning1/Planned Path1
       Splitter Ratio: 0.534328341
     Tree Height: 435
   - Class: rviz/Help
@@ -202,14 +200,6 @@ Visualization Manager:
         Show Robot Visual: true
       Value: true
       Velocity_Scaling_Factor: 0.20000000000000001
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /moving_node/display_goals
-      Name: Goals
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 127

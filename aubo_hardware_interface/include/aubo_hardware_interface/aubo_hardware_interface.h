@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 // roscpp
 #include <ros/ros.h>
@@ -38,7 +39,7 @@ private:
   hardware_interface::PositionJointInterface jnt_pos_interface;
   hardware_interface::VelocityJointInterface jnt_vel_interface;
 
-  std::vector<double> j_pos, j_pos_cmd;
+  std::vector<double> j_pos, j_pos_cmd, j_pos_off;
   std::vector<double> j_vel, j_vel_cmd;
   std::vector<double> j_eff, j_eff_cmd;
 
@@ -149,7 +150,7 @@ public:
     controller_manager(this, node) { }
 
 
-  bool init(double loop_hz, const std::vector<std::string> &joints)
+  bool init(double loop_hz, const std::vector<std::string> &joints, const std::vector<double> &joints_offset)
   {
     ros::Duration period(1.0/loop_hz);
     control_loop = node.createTimer(period, &aubo_hardware_interface::AuboHW::control_loop_cb, this, false, false);
@@ -176,6 +177,7 @@ public:
     registerInterface(&jnt_pos_interface);
     registerInterface(&jnt_vel_interface);
 
+    j_pos_off = joints_offset;
     return true;
   }
 
@@ -200,17 +202,33 @@ public:
 
   void read(const ros::Time &time, const ros::Duration &period)
   {
-    if (!robot.read(j_pos))
+    const int n_joints = j_pos.size();
+
+    std::vector<double> joint_pos;
+    joint_pos.resize(n_joints, 0.0);
+
+    if (!robot.read(joint_pos))
     {
       reset_controllers = true;
       ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions state from robot!");
     }
+
+    // apply offset
+    std::transform(joint_pos.begin(), joint_pos.end(), j_pos_off.begin(), j_pos.begin(), std::plus<double>());
   }
 
 
   void write(const ros::Time &time, const ros::Duration &period)
   {
-    if (!robot.write(j_pos_cmd))
+    const int n_joints = j_pos_cmd.size();
+
+    std::vector<double> joint_pos;
+    joint_pos.resize(n_joints, 0.0);
+
+    // apply offset
+    std::transform(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_off.begin(), joint_pos.begin(), std::minus<double>());
+
+    if (!robot.write(joint_pos))
     {
       reset_controllers = true;
       ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");

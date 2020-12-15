@@ -1,10 +1,12 @@
-//STL
 #include <string>
 #include <vector>
 
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// xmlrpcpp
+#include <XmlRpcValue.h>
+#include <XmlRpcException.h>
 // std_msgs
 #include <std_msgs/Bool.h>
 // industrial_msgs
@@ -47,12 +49,21 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  std::vector<double> joints_offset;
+  if (!node.getParam("joints_offset", joints_offset))
+  {
+    std::string param_name = node.resolveName("joints_offset");
+    ROS_ERROR("Failed to retrieve '%s' parameter.", param_name.c_str());
+    return 1;
+  }
+
+
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
   // Hardware Interface
   aubo_hardware_interface::AuboHW aubo_hw(node);
-  if (!aubo_hw.init(loop_hz, joints))
+  if (!aubo_hw.init(loop_hz, joints, joints_offset))
   {
     ROS_FATAL("Failed to initialize Hardware Interface.");
     return 1;

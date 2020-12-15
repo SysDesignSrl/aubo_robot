@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="aubo_i5" params="prefix
+  <xacro:macro name="aubo_i5" params="prefix:=''
     *shoulder_calibration
     *upperArm_calibration
     *foreArm_calibration
