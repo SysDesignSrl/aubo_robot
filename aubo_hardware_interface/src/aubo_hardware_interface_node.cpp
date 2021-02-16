@@ -1,9 +1,9 @@
 #include <string>
 #include <vector>
-
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <ros/callback_queue.h>
 // xmlrpcpp
 #include <XmlRpcValue.h>
 #include <XmlRpcException.h>
@@ -15,7 +15,6 @@
 #include <industrial_msgs/TriState.h>
 // controller manager
 #include <controller_manager/controller_manager.h>
-
 // aubo_hardware_interface
 #include "aubo_hardware_interface/aubo_hardware_interface.h"
 
@@ -26,6 +25,9 @@ int main(int argc, char* argv[])
 
   // Node
   ros::NodeHandle node("~");
+
+  ros::CallbackQueue callback_queue;
+  node.setCallbackQueue(&callback_queue);
 
   // Parameters
   auto freq = node.param<double>("publish_frequency", 10);
@@ -58,7 +60,7 @@ int main(int argc, char* argv[])
   }
 
 
-  ros::AsyncSpinner spinner(2);
+  ros::AsyncSpinner spinner(2, &callback_queue);
   spinner.start();
 
   // Hardware Interface
@@ -142,7 +144,7 @@ int main(int argc, char* argv[])
       bool motion_possible = drives_powered &&
                              !in_error &&
                              !aubo_hw.robot_diagnostic.brake_status &&
-                             aubo_hw.control_loop.hasStarted();
+                             aubo_hw.run;
 
       industrial_msgs::RobotStatus msg;
       msg.header.stamp = time;

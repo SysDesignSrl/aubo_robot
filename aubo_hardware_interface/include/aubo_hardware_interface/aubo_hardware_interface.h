@@ -1,19 +1,22 @@
 #ifndef AUBO_HARDWARE_INTERFACE_H
 #define AUBO_HARDWARE_INTERFACE_H
-// STL
 #include <sstream>
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <functional>
-
+// Unix
+#include <unistd.h>
+#include <pthread.h>
+#include <sched.h>
+#include <time.h>
+#include <errno.h>
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
 // std_srvs
 #include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
-
 // hardware_interface
 #include <hardware_interface/robot_hw.h>
 #include <hardware_interface/joint_state_interface.h>
@@ -22,16 +25,16 @@
 #include <controller_manager/controller_manager.h>
 // aubo_hardware_interface
 #include "aubo_hardware_interface/aubo_robot.h"
+#include "aubo_hardware_interface/time.h"
 
 
 namespace aubo_hardware_interface {
 
+void* control_loop(void* arg);
+
+
 class AuboHW : public hardware_interface::RobotHW {
 private:
-
-  // Controller Manager
-  controller_manager::ControllerManager controller_manager;
-  bool reset_controllers = true;
 
   ros::NodeHandle node;
 
@@ -104,9 +107,14 @@ private:
   }
 
 public:
+  // Controller Manager
+  controller_manager::ControllerManager controller_manager;
+  bool reset_controllers = true;
+
   aubo::AuboRobot robot;
 
-  ros::Timer control_loop;
+  bool run = false;
+  unsigned long t_cycle = 5000000;
 
   // Diagnostic Info
   struct
@@ -152,8 +160,7 @@ public:
 
   bool init(double loop_hz, const std::vector<std::string> &joints, const std::vector<double> &joints_offset)
   {
-    ros::Duration period(1.0/loop_hz);
-    control_loop = node.createTimer(period, &aubo_hardware_interface::AuboHW::control_loop_cb, this, false, false);
+    t_cycle = (1.0 / loop_hz) * 1000000000U;
 
     const int n_joints = joints.size();
 
@@ -235,7 +242,158 @@ public:
     }
   }
 
+
+  bool start(int cpu_affinity = 0)
+  {
+    pthread_t pthread;
+    pthread_attr_t pthread_attr;
+
+    errno = pthread_attr_init(&pthread_attr);
+    if (errno != 0)
+    {
+      ROS_FATAL("pthread_attr_init");
+      return false;
+    }
+
+    // cpu_set_t cpu_set;
+    // CPU_ZERO(&cpu_set);
+    // CPU_SET(cpu_affinity, &cpu_set);
+    // errno = pthread_attr_setaffinity_np(&pthread_attr, sizeof(cpu_set), &cpu_set);
+    // if (errno != 0)
+    // {
+    //   ROS_FATAL("pthread_attr_setaffinity_np");
+    //   return false;
+    // }
+
+    errno = pthread_attr_setinheritsched(&pthread_attr, PTHREAD_EXPLICIT_SCHED);
+    if (errno != 0)
+    {
+      ROS_FATAL("pthread_attr_setschedpolicy");
+      return false;
+    }
+
+    errno = pthread_attr_setschedpolicy(&pthread_attr, SCHED_FIFO);
+    if (errno != 0)
+    {
+      ROS_FATAL("pthread_attr_setschedpolicy");
+      return false;
+    }
+
+    sched_param sched_param
+    {
+      .sched_priority = 50
+    };
+    errno = pthread_attr_setschedparam(&pthread_attr, &sched_param);
+    if (errno != 0)
+    {
+      ROS_FATAL("pthread_attr_setschedparam");
+      return false;
+    }
+
+    errno = pthread_create(&pthread, &pthread_attr, &control_loop, this);
+    if (errno != 0)
+    {
+      ROS_FATAL("pthread_create");
+      return false;
+    }
+
+    errno = pthread_attr_destroy(&pthread_attr);
+    if (errno != 0)
+    {
+      ROS_FATAL("pthread_attr_destroy");
+      return false;
+    }
+
+    return true;
+  }
+
+  bool stop()
+  {
+    run = false;
+  }
+
 };
+
+
+inline void* control_loop(void* arg)
+{
+  aubo_hardware_interface::AuboHW* aubo_hw = (aubo_hardware_interface::AuboHW*)arg;
+  aubo_hw->reset_controllers = true;
+  aubo_hw->run = true;
+
+  struct timespec t_1, t;
+  errno = clock_gettime(CLOCK_MONOTONIC, &t);
+  if (errno != 0)
+  {
+    ROS_FATAL("clock_gettime");
+    return NULL;
+  }
+
+  while (ros::ok() && aubo_hw->run)
+  {
+    aubo_hardware_interface::time::add_timespec(&t, aubo_hw->t_cycle);
+
+    struct timespec t_left;
+    errno = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, &t_left);
+    if (errno != 0)
+    {
+      ROS_FATAL("clock_nanosleep");
+      break;
+    }
+
+    struct timespec t_period;
+    aubo_hardware_interface::time::diff_timespec(t, t_1, &t_period);
+
+    const ros::Time now = ros::Time::now();
+    const ros::Duration period(aubo_hardware_interface::time::to_sec(t_period));
+
+    if (aubo_hw->robot.soft_emergency)
+    {
+      aubo_hw->robot_shutdown();
+      aubo_hw->print_diagnostic_info();
+      break;
+    }
+
+    if (aubo_hw->robot.remote_emergency)
+    {
+      aubo_hw->robot_shutdown();
+      aubo_hw->print_diagnostic_info();
+      break;
+    }
+
+    if (aubo_hw->robot.robot_collision)
+    {
+      aubo_hw->robot_shutdown();
+      aubo_hw->print_diagnostic_info();
+      break;
+    }
+
+    if (aubo_hw->robot.singularity_overspeed)
+    {
+      aubo_hw->robot_shutdown();
+      aubo_hw->print_diagnostic_info();
+      break;
+    }
+
+    if (aubo_hw->robot.robot_overcurrent)
+    {
+      aubo_hw->robot_shutdown();
+      aubo_hw->print_diagnostic_info();
+      break;
+    }
+
+    aubo_hw->read(now, period);
+    aubo_hw->controller_manager.update(now, period, aubo_hw->reset_controllers);
+    aubo_hw->reset_controllers = false;
+    aubo_hw->write(now, period);
+
+    t_1 = t;
+  }
+
+  aubo_hw->run = false;
+  return NULL;
+}
+
 
 }  // namespace
 #endif

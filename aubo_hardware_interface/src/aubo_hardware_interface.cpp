@@ -165,7 +165,7 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
   }
 
   reset_controllers = true;
-  control_loop.start();
+  start();
 
   return true;
 }
@@ -190,7 +190,7 @@ bool aubo_hardware_interface::AuboHW::robot_startup(std_srvs::TriggerRequest &re
 
 bool aubo_hardware_interface::AuboHW::robot_shutdown()
 {
-  control_loop.stop();
+  stop();
   reset_controllers = true;
 
   if (robot.disable_tcp_canbus_mode())
