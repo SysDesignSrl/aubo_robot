@@ -114,7 +114,7 @@ public:
   aubo::AuboRobot robot;
 
   bool run = false;
-  unsigned long t_cycle = 5000000;
+  unsigned long t_cycle;
 
   // Diagnostic Info
   struct
@@ -307,7 +307,7 @@ public:
     return true;
   }
 
-  bool stop()
+  void stop()
   {
     run = false;
   }
@@ -331,6 +331,7 @@ inline void* control_loop(void* arg)
 
   while (ros::ok() && aubo_hw->run)
   {
+    t_1 = t;
     aubo_hardware_interface::time::add_timespec(&t, aubo_hw->t_cycle);
 
     struct timespec t_left;
@@ -386,8 +387,6 @@ inline void* control_loop(void* arg)
     aubo_hw->controller_manager.update(now, period, aubo_hw->reset_controllers);
     aubo_hw->reset_controllers = false;
     aubo_hw->write(now, period);
-
-    t_1 = t;
   }
 
   aubo_hw->run = false;
