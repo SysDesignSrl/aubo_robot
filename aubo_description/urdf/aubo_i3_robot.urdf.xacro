@@ -14,7 +14,5 @@
 
   <!-- Arm -->
   <xacro:aubo_i3 prefix=""/>
-  <xacro:aubo_arm_transmission prefix=""/>
-  <xacro:aubo_arm_gazebo prefix=""/>
 
 </robot>

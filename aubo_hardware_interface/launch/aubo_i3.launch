@@ -1,18 +1,21 @@
 <launch>
-  <arg name="ip"/>
+  <arg name="host"/>
   <arg name="port" default="8899"/>
+  <arg name="aubo_config" default="$(find aubo_hardware_interface)/config/aubo.yaml"/>
   <arg name="debug" default="false"/>
 
-  <env if="$(arg debug)" name="ROSCONSOLE_CONFIG_FILE" value="$(find aubo_hardware_interface)/rosconsole.conf"/>
+  <env if="$(arg debug)"
+    name="ROSCONSOLE_CONFIG_FILE" value="$(find aubo_hardware_interface)/rosconsole.conf"/>
 
   <rosparam command="load" file="$(find aubo_hardware_interface)/config/hardware.yaml" />
   <rosparam command="load" file="$(find aubo_hardware_interface)/config/controllers.yaml" />
 
   <!-- -->
   <node name="aubo_i3" pkg="aubo_hardware_interface" type="aubo_hw" output="screen">
-    <param name="tcp/hostname" value="$(arg ip)"/>
+    <rosparam ns="aubo" file="$(arg aubo_config)"/>
+    <rosparam file="$(find aubo_hardware_interface)/config/calibration.yaml"/>
+    <param name="tcp/host" value="$(arg host)"/>
     <param name="tcp/port" value="$(arg port)"/>
-    <rosparam ns="aubo" command="load" file="$(find aubo_hardware_interface)/config/aubo.yaml"/>
   </node>
 
   <!-- -->
