@@ -46,6 +46,9 @@ private:
   std::vector<double> j_vel, j_vel_cmd;
   std::vector<double> j_eff, j_eff_cmd;
 
+  // std::vector<double> j_pos_1, j_pos_cmd_1;
+  // std::vector<double> j_vel_1, j_vel_cmd_1;
+  // std::vector<double> j_eff_1, j_eff_cmd_1;
 
   void control_loop_cb(const ros::TimerEvent &ev)
   {
@@ -114,7 +117,7 @@ public:
   aubo::AuboRobot robot;
 
   bool run = false;
-  unsigned long t_cycle;
+  unsigned long t_cycle = 5000000U; long t_offset = 5000;
 
   // Diagnostic Info
   struct
@@ -167,6 +170,10 @@ public:
     j_pos.resize(n_joints, 0.0); j_pos_cmd.resize(n_joints, 0.0);
     j_vel.resize(n_joints, 0.0); j_vel_cmd.resize(n_joints, 0.0);
     j_eff.resize(n_joints, 0.0); j_eff_cmd.resize(n_joints, 0.0);
+
+    // j_pos_1.resize(n_joints, 0.0); j_pos_cmd_1.resize(n_joints, 0.0);
+    // j_vel_1.resize(n_joints, 0.0); j_vel_cmd_1.resize(n_joints, 0.0);
+    // j_eff_1.resize(n_joints, 0.0); j_eff_cmd_1.resize(n_joints, 0.0);
 
     for (int i = 0; i < n_joints; i++)
     {
@@ -227,19 +234,24 @@ public:
 
   void write(const ros::Time &time, const ros::Duration &period)
   {
-    const int n_joints = j_pos_cmd.size();
+    // if (!std::equal(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_cmd_1.begin()))
+    // {
+      const int n_joints = j_pos_cmd.size();
 
-    std::vector<double> joint_pos;
-    joint_pos.resize(n_joints, 0.0);
+      std::vector<double> joint_pos;
+      joint_pos.resize(n_joints, 0.0);
 
-    // apply offset
-    std::transform(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_off.begin(), joint_pos.begin(), std::minus<double>());
+      // apply offset
+      std::transform(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_off.begin(), joint_pos.begin(), std::minus<double>());
 
-    if (!robot.write(joint_pos))
-    {
-      reset_controllers = true;
-      ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
-    }
+      if (!robot.write(joint_pos))
+      {
+        reset_controllers = true;
+        ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
+      }
+
+    //   std::copy(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_cmd_1.begin());
+    // }
   }
 
 
@@ -332,7 +344,7 @@ inline void* control_loop(void* arg)
   while (ros::ok() && aubo_hw->run)
   {
     t_1 = t;
-    aubo_hardware_interface::time::add_timespec(&t, aubo_hw->t_cycle);
+    aubo_hardware_interface::time::add_timespec(&t, aubo_hw->t_cycle + aubo_hw->t_offset);
 
     struct timespec t_left;
     errno = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, &t_left);
