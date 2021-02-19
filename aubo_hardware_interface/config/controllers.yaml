@@ -17,6 +17,14 @@ aubo_i3:
         - wrist1_joint
         - wrist2_joint
         - wrist3_joint
+      constraints:
+        goal_time: 1.0
+        shoulder_joint: { goal: 0.002 }
+        upperArm_joint: { goal: 0.002 }
+        foreArm_joint: { goal: 0.002 }
+        wrist1_joint: { goal: 0.002 }
+        wrist2_joint: { goal: 0.002 }
+        wrist3_joint: { goal: 0.002 }
       stop_trajectory_duration: 1.0
 
 aubo_i5:
@@ -35,12 +43,13 @@ aubo_i5:
         - wrist2_joint
         - wrist3_joint
       constraints:
-        shoulder_joint: { goal: 0.02, trajectory: 0.08 }
-        upperArm_joint: { goal: 0.02, trajectory: 0.08 }
-        foreArm_joint: { goal: 0.02, trajectory: 0.08 }
-        wrist1_joint: { goal: 0.02, trajectory: 0.08 }
-        wrist2_joint: { goal: 0.02, trajectory: 0.08 }
-        wrist3_joint: { goal: 0.02, trajectory: 0.08 }
+        goal_time: 1.0
+        shoulder_joint: { goal: 0.002, trajectory: 0.2 }
+        upperArm_joint: { goal: 0.002, trajectory: 0.2 }
+        foreArm_joint: { goal: 0.002, trajectory: 0.2 }
+        wrist1_joint: { goal: 0.002, trajectory: 0.2 }
+        wrist2_joint: { goal: 0.002, trajectory: 0.2 }
+        wrist3_joint: { goal: 0.002, trajectory: 0.2 }
       stop_trajectory_duration: 1.0
 
 aubo_i7:

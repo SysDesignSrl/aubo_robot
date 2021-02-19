@@ -164,9 +164,7 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
     ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
   }
 
-  reset_controllers = true;
   start();
-
   return true;
 }
 
@@ -191,7 +189,6 @@ bool aubo_hardware_interface::AuboHW::robot_startup(std_srvs::TriggerRequest &re
 bool aubo_hardware_interface::AuboHW::robot_shutdown()
 {
   stop();
-  reset_controllers = true;
 
   if (robot.disable_tcp_canbus_mode())
   {

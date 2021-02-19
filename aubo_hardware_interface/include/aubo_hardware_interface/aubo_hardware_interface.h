@@ -46,69 +46,6 @@ private:
   std::vector<double> j_vel, j_vel_cmd;
   std::vector<double> j_eff, j_eff_cmd;
 
-  // std::vector<double> j_pos_1, j_pos_cmd_1;
-  // std::vector<double> j_vel_1, j_vel_cmd_1;
-  // std::vector<double> j_eff_1, j_eff_cmd_1;
-
-  void control_loop_cb(const ros::TimerEvent &ev)
-  {
-    if (robot.soft_emergency)
-    {
-      // control_loop.stop();
-      robot_shutdown();
-      print_diagnostic_info();
-      return;
-    }
-
-    if (robot.remote_emergency)
-    {
-      // control_loop.stop();
-      robot_shutdown();
-      print_diagnostic_info();
-      return;
-    }
-
-    if (robot.robot_collision)
-    {
-      // control_loop.stop();
-      robot_shutdown();
-      print_diagnostic_info();
-      return;
-    }
-
-    if (robot.singularity_overspeed)
-    {
-      // control_loop.stop();
-      robot_shutdown();
-      print_diagnostic_info();
-      return;
-    }
-
-    if (robot.robot_overcurrent)
-    {
-      // control_loop.stop();
-      robot_shutdown();
-      print_diagnostic_info();
-      return;
-    }
-
-    // if (robot.safe_io)
-    // {
-    //   // control_loop.stop();
-    //   robot_shutdown();
-    //   print_diagnostic_info();
-    //   return;
-    // }
-
-    const ros::Time time = ev.current_real;
-    const ros::Duration period = ev.current_real - ev.last_real;
-
-    read(time, period);
-    controller_manager.update(time, period, reset_controllers);
-    reset_controllers = false;
-    write(time, period);
-  }
-
 public:
   // Controller Manager
   controller_manager::ControllerManager controller_manager;
@@ -117,7 +54,7 @@ public:
   aubo::AuboRobot robot;
 
   bool run = false;
-  unsigned long t_cycle = 5000000U; long t_offset = 5000;
+  unsigned long t_cycle = 5000000U; long t_offset = 0;
 
   // Diagnostic Info
   struct
@@ -171,10 +108,6 @@ public:
     j_vel.resize(n_joints, 0.0); j_vel_cmd.resize(n_joints, 0.0);
     j_eff.resize(n_joints, 0.0); j_eff_cmd.resize(n_joints, 0.0);
 
-    // j_pos_1.resize(n_joints, 0.0); j_pos_cmd_1.resize(n_joints, 0.0);
-    // j_vel_1.resize(n_joints, 0.0); j_vel_cmd_1.resize(n_joints, 0.0);
-    // j_eff_1.resize(n_joints, 0.0); j_eff_cmd_1.resize(n_joints, 0.0);
-
     for (int i = 0; i < n_joints; i++)
     {
       hardware_interface::JointStateHandle jnt_state_handle(joints[i], &j_pos[i], &j_vel[i], &j_eff[i]);
@@ -214,49 +147,14 @@ public:
   bool print_diagnostic_info(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res);
 
 
-  void read(const ros::Time &time, const ros::Duration &period)
+  bool start()
   {
-    const int n_joints = j_pos.size();
-
-    std::vector<double> joint_pos;
-    joint_pos.resize(n_joints, 0.0);
-
-    if (!robot.read(joint_pos))
+    if (run)
     {
-      reset_controllers = true;
-      ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions state from robot!");
+      ROS_WARN("Control Loop already running");
+      return false;
     }
 
-    // apply offset
-    std::transform(joint_pos.begin(), joint_pos.end(), j_pos_off.begin(), j_pos.begin(), std::plus<double>());
-  }
-
-
-  void write(const ros::Time &time, const ros::Duration &period)
-  {
-    // if (!std::equal(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_cmd_1.begin()))
-    // {
-      const int n_joints = j_pos_cmd.size();
-
-      std::vector<double> joint_pos;
-      joint_pos.resize(n_joints, 0.0);
-
-      // apply offset
-      std::transform(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_off.begin(), joint_pos.begin(), std::minus<double>());
-
-      if (!robot.write(joint_pos))
-      {
-        reset_controllers = true;
-        ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
-      }
-
-    //   std::copy(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_cmd_1.begin());
-    // }
-  }
-
-
-  bool start(int cpu_affinity = 0)
-  {
     pthread_t pthread;
     pthread_attr_t pthread_attr;
 
@@ -266,16 +164,6 @@ public:
       ROS_FATAL("pthread_attr_init");
       return false;
     }
-
-    // cpu_set_t cpu_set;
-    // CPU_ZERO(&cpu_set);
-    // CPU_SET(cpu_affinity, &cpu_set);
-    // errno = pthread_attr_setaffinity_np(&pthread_attr, sizeof(cpu_set), &cpu_set);
-    // if (errno != 0)
-    // {
-    //   ROS_FATAL("pthread_attr_setaffinity_np");
-    //   return false;
-    // }
 
     errno = pthread_attr_setinheritsched(&pthread_attr, PTHREAD_EXPLICIT_SCHED);
     if (errno != 0)
@@ -319,9 +207,47 @@ public:
     return true;
   }
 
+
   void stop()
   {
+    reset_controllers = true;
     run = false;
+  }
+
+
+  void read(const ros::Time &time, const ros::Duration &period)
+  {
+    const int n_joints = j_pos.size();
+
+    std::vector<double> joint_pos;
+    joint_pos.resize(n_joints, 0.0);
+
+    if (!robot.read(joint_pos))
+    {
+      reset_controllers = true;
+      ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions state from robot!");
+    }
+
+    // apply offset
+    std::transform(joint_pos.begin(), joint_pos.end(), j_pos_off.begin(), j_pos.begin(), std::plus<double>());
+  }
+
+
+  void write(const ros::Time &time, const ros::Duration &period)
+  {
+    const int n_joints = j_pos_cmd.size();
+
+    std::vector<double> joint_pos;
+    joint_pos.resize(n_joints, 0.0);
+
+    // apply offset
+    std::transform(j_pos_cmd.begin(), j_pos_cmd.end(), j_pos_off.begin(), joint_pos.begin(), std::minus<double>());
+
+    if (!robot.write(joint_pos))
+    {
+      reset_controllers = true;
+      ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
+    }
   }
 
 };
