@@ -14,6 +14,8 @@
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// std_msgs
+#include <std_msgs/Bool.h>
 // std_srvs
 #include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
@@ -53,7 +55,7 @@ public:
 
   aubo::AuboRobot robot;
 
-  bool run = false;
+  bool ros_control = false;
   unsigned long t_cycle = 5000000U; long t_offset = 0;
 
   // Diagnostic Info
@@ -147,14 +149,40 @@ public:
   bool print_diagnostic_info(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res);
 
 
-  bool start()
+  void ros_control_cb(const std_msgs::Bool::ConstPtr &msg)
   {
-    if (run)
+    if (msg->data && !ros_control)
     {
-      ROS_WARN("Control Loop already running");
-      return false;
+      if (robot.enable_tcp_canbus_mode())
+      {
+        ROS_INFO("Enabled TCP 2 CANbus Mode.");
+      }
+      else
+      {
+        ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+      }
+
+      start_control_loop();
     }
 
+    if (!msg->data && ros_control)
+    {
+      stop_control_loop();
+
+      if (robot.disable_tcp_canbus_mode())
+      {
+        ROS_INFO("Disabled TCP 2 CANbus Mode.");
+      }
+      else
+      {
+        ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
+      }
+    }
+  }
+
+
+  bool start_control_loop()
+  {
     pthread_t pthread;
     pthread_attr_t pthread_attr;
 
@@ -204,14 +232,14 @@ public:
       return false;
     }
 
+    ros_control = true;
     return true;
   }
 
 
-  void stop()
+  void stop_control_loop()
   {
-    reset_controllers = true;
-    run = false;
+    ros_control = false;
   }
 
 
@@ -257,7 +285,6 @@ inline void* control_loop(void* arg)
 {
   aubo_hardware_interface::AuboHW* aubo_hw = (aubo_hardware_interface::AuboHW*)arg;
   aubo_hw->reset_controllers = true;
-  aubo_hw->run = true;
 
   struct timespec t_1, t;
   errno = clock_gettime(CLOCK_MONOTONIC, &t);
@@ -267,7 +294,7 @@ inline void* control_loop(void* arg)
     return NULL;
   }
 
-  while (ros::ok() && aubo_hw->run)
+  while (ros::ok() && aubo_hw->ros_control)
   {
     t_1 = t;
     aubo_hardware_interface::time::add_timespec(&t, aubo_hw->t_cycle + aubo_hw->t_offset);
@@ -327,7 +354,6 @@ inline void* control_loop(void* arg)
     aubo_hw->write(now, period);
   }
 
-  aubo_hw->run = false;
   return NULL;
 }
 

@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
   ros::AsyncSpinner spinner(2, &callback_queue);
   spinner.start();
 
+
   // Hardware Interface
   aubo_hardware_interface::AuboHW aubo_hw(node);
   if (!aubo_hw.init(loop_hz, joints, joints_offset))
@@ -71,12 +72,8 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // Services
-  auto login_srv = node.advertiseService("login", &aubo_hardware_interface::AuboHW::login, &aubo_hw);
-  auto logout_srv = node.advertiseService("logout", &aubo_hardware_interface::AuboHW::logout, &aubo_hw);
-  auto robot_startup_srv = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
-  auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
-  auto print_diagnostic_info_srv = node.advertiseService("print_diagnostic_info", &aubo_hardware_interface::AuboHW::print_diagnostic_info, &aubo_hw);
+  // Subscribed Topics
+  auto ros_control_sub = node.subscribe<std_msgs::Bool>("ros_control", 1, &aubo_hardware_interface::AuboHW::ros_control_cb, &aubo_hw);
 
   // Published Topics
   auto connected_pub = node.advertise<std_msgs::Bool>("connected", 1);
@@ -85,6 +82,13 @@ int main(int argc, char* argv[])
   auto singularity_overspeed_pub = node.advertise<std_msgs::Bool>("singularity_overspeed", 1);
   auto robot_overcurrent_pub = node.advertise<std_msgs::Bool>("robot_overcurrent", 1);
   auto robot_status_pub = node.advertise<industrial_msgs::RobotStatus>("status", 10);
+
+  // Services
+  auto login_srv = node.advertiseService("login", &aubo_hardware_interface::AuboHW::login, &aubo_hw);
+  auto logout_srv = node.advertiseService("logout", &aubo_hardware_interface::AuboHW::logout, &aubo_hw);
+  auto robot_startup_srv = node.advertiseService("robot_startup", &aubo_hardware_interface::AuboHW::robot_startup, &aubo_hw);
+  auto robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo_hardware_interface::AuboHW::robot_shutdown, &aubo_hw);
+  auto print_diagnostic_info_srv = node.advertiseService("print_diagnostic_info", &aubo_hardware_interface::AuboHW::print_diagnostic_info, &aubo_hw);
 
 
   node.setParam("connected", false);
@@ -144,7 +148,7 @@ int main(int argc, char* argv[])
       bool motion_possible = drives_powered &&
                              !in_error &&
                              !aubo_hw.robot_diagnostic.brake_status &&
-                             aubo_hw.run;
+                             aubo_hw.ros_control;
 
       industrial_msgs::RobotStatus msg;
       msg.header.stamp = time;
