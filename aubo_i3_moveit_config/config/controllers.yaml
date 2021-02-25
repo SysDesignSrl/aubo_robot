@@ -1,7 +1,7 @@
 controller_list:
-  - name: aubo_i3_controller
-    action_ns: follow_joint_trajectory
-    type: FollowJointTrajectory
+  - name: aubo_i3
+    action_ns: joint_trajectory
+    type: JointTrajectory
     default: true
     joints:
       - shoulder_joint
@@ -10,4 +10,3 @@ controller_list:
       - wrist1_joint
       - wrist2_joint
       - wrist3_joint
-

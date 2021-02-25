@@ -1,6 +1,5 @@
 #ifndef AUBO_AUBO_ROBOT_H
 #define AUBO_AUBO_ROBOT_H
-// STL
 #include <sstream>
 #include <string>
 #include <vector>
@@ -8,6 +7,9 @@
 // roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// xmlrpcpp
+#include <XmlRpcValue.h>
+#include <XmlRpcException.h>
 // actionlib
 #include <actionlib/server/simple_action_server.h>
 // std_msgs
@@ -38,30 +40,48 @@ class AuboRobot {
 private:
   ros::NodeHandle node;
 
-  ros::Timer refresh_cycle;
+  ServiceInterface service_interface;
 
-  std::vector<std::string> joint_names;
+  // Action Servers
+  actionlib::SimpleActionServer<control_msgs::JointTrajectoryAction> joint_trajectory_asrv;
 
-  actionlib::SimpleActionServer<control_msgs::JointTrajectoryAction> joint_trajectory_act;
+  // Diagnostic Info
+  struct
+  {
+    bool arm_power_status;              // The switch status (on, off) of robot 48V power
+    double arm_power_current;           // The current of robot 48V power
+    double arm_power_voltage;           // The voltage of robot 48V power
+    uint8 arm_canbus_status;            // 0x00: No error 0xff: CAN bus error
 
-  // Services
-  ros::ServiceServer login_srv;
-  ros::ServiceServer logout_srv;
+    bool remote_halt;                   // Remote halt signal
+    bool soft_emergency;                // Robot soft emergency
+    bool remote_emergency;              // Remote emergency sugnal
 
-  ros::ServiceServer robot_startup_srv;
-  ros::ServiceServer robot_shutdown_srv;
+    bool robot_collision;               // Collision detection bit
+    bool static_collision;              // Static collision detection switch
+    uint8 joint_collision;              // Joint collision detection, each joint occupies 1 bit, 0-collision inexistence 1-collision existence
 
-  ros::ServiceServer init_profile_srv;
+    bool force_control_mode;            // The flag bit of robot starting force control mode
+    bool brake_status;                  // Brake status
+    bool orpe_status;                   // The status bit of the software (ORPE)
 
-  ros::ServiceServer stop_movement_srv;
-  ros::ServiceServer pause_movement_srv;
-  ros::ServiceServer resume_movement_srv;
+    bool encoder_error;                 // Magnetic encoder error status
+    bool encoder_lines_error;           // Optical-electricity encoders are not same, 0-no error, 1-error
+    bool joint_error;                   // Joint error status
+    uint8 tool_io_error;                // Tool error
 
-  ros::ServiceServer print_diagnostic_srv;
+    bool singularity_overspeed;         // The overspeed alarm of robot singularity
+    bool robot_overcurrent;             // The alarm of robot current flow
+
+    bool robot_mounting_pose_warning;   // The mounting position of the robot is wrong (Working on the force control only)
+
+    uint16 can_buffer_size;             // The size of the mac buffer
+    uint16 can_data_size;               // The valid data size of the mac buffer
+    uint8 can_data_warning;             // The mac data interruption
+  } robot_diagnostic;
+
 
   // Topics
-  ros::Publisher joint_state_pub;
-
   ros::Publisher di_00_pub;
   ros::Publisher di_01_pub;
   ros::Publisher di_02_pub;
@@ -107,23 +127,15 @@ private:
   ros::Subscriber ao_03_sub;
 
 
-  ServiceInterface service_interface;
-  int collision_class;
-  double blend_radius;
-
-
   void refresh_cycle_cb(const ros::TimerEvent &ev)
   {
-    //
     publish_digital_inputs();
-    //
     publish_analog_inputs();
   }
 
 
   void publish_digital_inputs()
   {
-    //
     bool val;
     std_msgs::Bool msg;
 
@@ -180,7 +192,6 @@ private:
 
   void publish_analog_inputs()
   {
-    //
     double val;
     std_msgs::Float64 msg;
 
@@ -198,137 +209,98 @@ private:
     ai_03_pub.publish(msg);
   }
 
-
-  void do_00_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_00", msg->data); }
-  void do_01_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_01", msg->data); }
-  void do_02_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_02", msg->data); }
-  void do_03_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_03", msg->data); }
-  void do_04_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_04", msg->data); }
-  void do_05_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_05", msg->data); }
-  void do_06_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_06", msg->data); }
-  void do_07_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_07", msg->data); }
-  void do_10_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_10", msg->data); }
-  void do_11_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_11", msg->data); }
-  void do_12_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_12", msg->data); }
-  void do_13_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_13", msg->data); }
-  void do_14_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_14", msg->data); }
-  void do_15_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_15", msg->data); }
-  void do_16_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_16", msg->data); }
-  void do_17_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_17", msg->data); }
-
-
-  void ao_00_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO1", msg->data); }
-  void ao_01_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO2", msg->data); }
-  void ao_02_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO3", msg->data); }
-  void ao_03_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO4", msg->data); }
-
+  // void do_00_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_00", msg->data); }
+  // void do_01_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_01", msg->data); }
+  // void do_02_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_02", msg->data); }
+  // void do_03_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_03", msg->data); }
+  // void do_04_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_04", msg->data); }
+  // void do_05_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_05", msg->data); }
+  // void do_06_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_06", msg->data); }
+  // void do_07_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_07", msg->data); }
+  // void do_10_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_10", msg->data); }
+  // void do_11_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_11", msg->data); }
+  // void do_12_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_12", msg->data); }
+  // void do_13_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_13", msg->data); }
+  // void do_14_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_14", msg->data); }
+  // void do_15_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_15", msg->data); }
+  // void do_16_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_16", msg->data); }
+  // void do_17_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_17", msg->data); }
+  //
+  //
+  // void ao_00_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO1", msg->data); }
+  // void ao_01_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO2", msg->data); }
+  // void ao_02_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO3", msg->data); }
+  // void ao_03_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO4", msg->data); }
 
 public:
 
+  ros::Publisher joint_state_pub;
+  ros::Publisher tool_pose_pub;
+  ros::Publisher diagnostic_pub;
+
+  std::vector<std::string> joint_names;
+
+
   AuboRobot(const ros::NodeHandle &node = ros::NodeHandle()) :
     node(node),
-    joint_trajectory_act(node, "joint_trajectory", boost::bind(&aubo::AuboRobot::move_track, this, _1), false) { }
+    joint_trajectory_asrv(node, "joint_trajectory", boost::bind(&aubo::AuboRobot::execute_trajectory, this, _1), false) { }
 
 
-  bool init()
+  bool init(const std::vector<std::string> &joint_names)
   {
-    // Parameters
-    if (!node.getParam("joint_names", joint_names))
-    {
-      ROS_FATAL("Failed to get parameter: '%s'", "joint_names");
-      return false;
-    }
+    this->joint_names = joint_names;
 
-    collision_class = node.param<int>("aubo/collision_class", 6);
-    blend_radius = node.param<double>("aubo/blend_radius", 0.02);
-
-    // Services
-    login_srv = node.advertiseService("login", &aubo::AuboRobot::login, this);
-    logout_srv = node.advertiseService("logout", &aubo::AuboRobot::logout, this);
-
-    robot_startup_srv = node.advertiseService("robot_startup", &aubo::AuboRobot::robot_startup, this);
-    robot_shutdown_srv = node.advertiseService("robot_shutdown", &aubo::AuboRobot::robot_shutdown, this);
-
-    init_profile_srv = node.advertiseService("init_profile", &aubo::AuboRobot::init_profile, this);
-
-    print_diagnostic_srv = node.advertiseService("print_diagnostic_info", &aubo::AuboRobot::print_diagnostic_info, this);
-
-    // Topics
-    joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 100);
-
-    di_00_pub = node.advertise<std_msgs::Bool>("DI/00", 1);
-    di_01_pub = node.advertise<std_msgs::Bool>("DI/01", 1);
-    di_02_pub = node.advertise<std_msgs::Bool>("DI/02", 1);
-    di_03_pub = node.advertise<std_msgs::Bool>("DI/03", 1);
-    di_04_pub = node.advertise<std_msgs::Bool>("DI/04", 1);
-    di_05_pub = node.advertise<std_msgs::Bool>("DI/05", 1);
-    di_06_pub = node.advertise<std_msgs::Bool>("DI/06", 1);
-    di_07_pub = node.advertise<std_msgs::Bool>("DI/07", 1);
-    di_10_pub = node.advertise<std_msgs::Bool>("DI/10", 1);
-    di_11_pub = node.advertise<std_msgs::Bool>("DI/11", 1);
-    di_12_pub = node.advertise<std_msgs::Bool>("DI/12", 1);
-    di_13_pub = node.advertise<std_msgs::Bool>("DI/13", 1);
-    di_14_pub = node.advertise<std_msgs::Bool>("DI/14", 1);
-    di_15_pub = node.advertise<std_msgs::Bool>("DI/15", 1);
-    di_16_pub = node.advertise<std_msgs::Bool>("DI/16", 1);
-    di_17_pub = node.advertise<std_msgs::Bool>("DI/17", 1);
-
-    do_00_sub = node.subscribe<std_msgs::Bool>("DO/00", 1, &aubo::AuboRobot::do_00_cb, this);
-    do_01_sub = node.subscribe<std_msgs::Bool>("DO/01", 1, &aubo::AuboRobot::do_01_cb, this);
-    do_02_sub = node.subscribe<std_msgs::Bool>("DO/02", 1, &aubo::AuboRobot::do_02_cb, this);
-    do_03_sub = node.subscribe<std_msgs::Bool>("DO/03", 1, &aubo::AuboRobot::do_03_cb, this);
-    do_04_sub = node.subscribe<std_msgs::Bool>("DO/04", 1, &aubo::AuboRobot::do_04_cb, this);
-    do_05_sub = node.subscribe<std_msgs::Bool>("DO/05", 1, &aubo::AuboRobot::do_05_cb, this);
-    do_06_sub = node.subscribe<std_msgs::Bool>("DO/06", 1, &aubo::AuboRobot::do_06_cb, this);
-    do_07_sub = node.subscribe<std_msgs::Bool>("DO/07", 1, &aubo::AuboRobot::do_07_cb, this);
-    do_10_sub = node.subscribe<std_msgs::Bool>("DO/10", 1, &aubo::AuboRobot::do_10_cb, this);
-    do_11_sub = node.subscribe<std_msgs::Bool>("DO/11", 1, &aubo::AuboRobot::do_11_cb, this);
-    do_12_sub = node.subscribe<std_msgs::Bool>("DO/12", 1, &aubo::AuboRobot::do_12_cb, this);
-    do_13_sub = node.subscribe<std_msgs::Bool>("DO/13", 1, &aubo::AuboRobot::do_13_cb, this);
-    do_14_sub = node.subscribe<std_msgs::Bool>("DO/14", 1, &aubo::AuboRobot::do_14_cb, this);
-    do_15_sub = node.subscribe<std_msgs::Bool>("DO/15", 1, &aubo::AuboRobot::do_15_cb, this);
-    do_16_sub = node.subscribe<std_msgs::Bool>("DO/16", 1, &aubo::AuboRobot::do_16_cb, this);
-    do_17_sub = node.subscribe<std_msgs::Bool>("DO/17", 1, &aubo::AuboRobot::do_17_cb, this);
-
-    ai_00_pub = node.advertise<std_msgs::Float64>("AI/00", 1);
-    ai_01_pub = node.advertise<std_msgs::Float64>("AI/01", 1);
-    ai_02_pub = node.advertise<std_msgs::Float64>("AI/02", 1);
-    ai_03_pub = node.advertise<std_msgs::Float64>("AI/03", 1);
-
-    ao_00_sub = node.subscribe<std_msgs::Float64>("AO/00", 1, &aubo::AuboRobot::ao_00_cb, this);
-    ao_01_sub = node.subscribe<std_msgs::Float64>("AO/01", 1, &aubo::AuboRobot::ao_01_cb, this);
-    ao_02_sub = node.subscribe<std_msgs::Float64>("AO/02", 1, &aubo::AuboRobot::ao_02_cb, this);
-    ao_03_sub = node.subscribe<std_msgs::Float64>("AO/03", 1, &aubo::AuboRobot::ao_03_cb, this);
-
-
-    // Refresh Cycle
-    ros::Duration period(1.0);
-    refresh_cycle = node.createTimer(period, &aubo::AuboRobot::refresh_cycle_cb, this, false, false);
+    // di_00_pub = node.advertise<std_msgs::Bool>("DI/00", 1);
+    // di_01_pub = node.advertise<std_msgs::Bool>("DI/01", 1);
+    // di_02_pub = node.advertise<std_msgs::Bool>("DI/02", 1);
+    // di_03_pub = node.advertise<std_msgs::Bool>("DI/03", 1);
+    // di_04_pub = node.advertise<std_msgs::Bool>("DI/04", 1);
+    // di_05_pub = node.advertise<std_msgs::Bool>("DI/05", 1);
+    // di_06_pub = node.advertise<std_msgs::Bool>("DI/06", 1);
+    // di_07_pub = node.advertise<std_msgs::Bool>("DI/07", 1);
+    //
+    // di_10_pub = node.advertise<std_msgs::Bool>("DI/10", 1);
+    // di_11_pub = node.advertise<std_msgs::Bool>("DI/11", 1);
+    // di_12_pub = node.advertise<std_msgs::Bool>("DI/12", 1);
+    // di_13_pub = node.advertise<std_msgs::Bool>("DI/13", 1);
+    // di_14_pub = node.advertise<std_msgs::Bool>("DI/14", 1);
+    // di_15_pub = node.advertise<std_msgs::Bool>("DI/15", 1);
+    // di_16_pub = node.advertise<std_msgs::Bool>("DI/16", 1);
+    // di_17_pub = node.advertise<std_msgs::Bool>("DI/17", 1);
+    //
+    // do_00_sub = node.subscribe<std_msgs::Bool>("DO/00", 1, &aubo::AuboRobot::do_00_cb, this);
+    // do_01_sub = node.subscribe<std_msgs::Bool>("DO/01", 1, &aubo::AuboRobot::do_01_cb, this);
+    // do_02_sub = node.subscribe<std_msgs::Bool>("DO/02", 1, &aubo::AuboRobot::do_02_cb, this);
+    // do_03_sub = node.subscribe<std_msgs::Bool>("DO/03", 1, &aubo::AuboRobot::do_03_cb, this);
+    // do_04_sub = node.subscribe<std_msgs::Bool>("DO/04", 1, &aubo::AuboRobot::do_04_cb, this);
+    // do_05_sub = node.subscribe<std_msgs::Bool>("DO/05", 1, &aubo::AuboRobot::do_05_cb, this);
+    // do_06_sub = node.subscribe<std_msgs::Bool>("DO/06", 1, &aubo::AuboRobot::do_06_cb, this);
+    // do_07_sub = node.subscribe<std_msgs::Bool>("DO/07", 1, &aubo::AuboRobot::do_07_cb, this);
+    // do_10_sub = node.subscribe<std_msgs::Bool>("DO/10", 1, &aubo::AuboRobot::do_10_cb, this);
+    // do_11_sub = node.subscribe<std_msgs::Bool>("DO/11", 1, &aubo::AuboRobot::do_11_cb, this);
+    // do_12_sub = node.subscribe<std_msgs::Bool>("DO/12", 1, &aubo::AuboRobot::do_12_cb, this);
+    // do_13_sub = node.subscribe<std_msgs::Bool>("DO/13", 1, &aubo::AuboRobot::do_13_cb, this);
+    // do_14_sub = node.subscribe<std_msgs::Bool>("DO/14", 1, &aubo::AuboRobot::do_14_cb, this);
+    // do_15_sub = node.subscribe<std_msgs::Bool>("DO/15", 1, &aubo::AuboRobot::do_15_cb, this);
+    // do_16_sub = node.subscribe<std_msgs::Bool>("DO/16", 1, &aubo::AuboRobot::do_16_cb, this);
+    // do_17_sub = node.subscribe<std_msgs::Bool>("DO/17", 1, &aubo::AuboRobot::do_17_cb, this);
+    //
+    // ai_00_pub = node.advertise<std_msgs::Float64>("AI/00", 1);
+    // ai_01_pub = node.advertise<std_msgs::Float64>("AI/01", 1);
+    // ai_02_pub = node.advertise<std_msgs::Float64>("AI/02", 1);
+    // ai_03_pub = node.advertise<std_msgs::Float64>("AI/03", 1);
+    //
+    // ao_00_sub = node.subscribe<std_msgs::Float64>("AO/00", 1, &aubo::AuboRobot::ao_00_cb, this);
+    // ao_01_sub = node.subscribe<std_msgs::Float64>("AO/01", 1, &aubo::AuboRobot::ao_01_cb, this);
+    // ao_02_sub = node.subscribe<std_msgs::Float64>("AO/02", 1, &aubo::AuboRobot::ao_02_cb, this);
+    // ao_03_sub = node.subscribe<std_msgs::Float64>("AO/03", 1, &aubo::AuboRobot::ao_03_cb, this);
 
     return true;
   }
 
 
-  bool start()
+  bool init_robot()
   {
-    // Login
-    if (!login())
-    {
-      ROS_FATAL("Failed to log in.");
-      return false;
-    }
-
-    // Robot startup
-    if (!robot_startup())
-    {
-      ROS_FATAL("Failed to startup the robot.");
-      return false;
-    }
-
-
-    init_profile();
-
-
     std::vector<double> max_joint_acc;
     if (node.getParam("aubo/max_joint_acceleration", max_joint_acc))
     {
@@ -393,41 +365,78 @@ public:
 
     get_max_angular_velocity(max_angular_vel);
     ROS_DEBUG("max angular velocity: %.2f [rad/s]", max_angular_vel);
-
-
-    refresh_cycle.start();
-    joint_trajectory_act.start();
   }
 
 
-  bool stop()
+  bool start()
   {
-    // Robot Shutdown
-    if (!robot_shutdown())
-    {
-      ROS_FATAL("Failed to shutdown the robot.");
-      return false;
-    }
+    joint_trajectory_asrv.start();
+    return true;
+  }
 
-    // Logout
-    if (!logout())
+
+  void execute_trajectory(const control_msgs::JointTrajectoryGoal::ConstPtr &goal)
+  {
+    if (move_track(goal->trajectory))
     {
-      ROS_FATAL("Failed to log out.");
-      return false;
+      ROS_INFO("Trajectory executed succesfully.");
+      joint_trajectory_asrv.setSucceeded();
+    }
+    else
+    {
+      ROS_ERROR("Failed to execute trajectory.");
+      joint_trajectory_asrv.setAborted();
     }
   }
 
+
+  void velocity_scaling(const std_msgs::Float64::ConstPtr &msg)
+  {
+    double scaling_factor = msg->data;
+
+    scaling_factor = std::max(0.0, scaling_factor);
+    scaling_factor = std::min(scaling_factor, 1.0);
+
+    std::vector<double> max_joint_vel;
+    if (node.getParamCached("aubo/max_joint_velocity", max_joint_vel))
+    {
+      std::vector<double> joint_vel;
+      joint_vel.resize(max_joint_vel.size());
+
+      std::transform(max_joint_vel.begin(), max_joint_vel.end(), joint_vel.begin(), [scaling_factor](double value) { return scaling_factor * value; } );
+
+      set_max_joint_velocity(joint_vel);
+    }
+  }
+
+  void acceleration_scaling(const std_msgs::Float64::ConstPtr &msg)
+  {
+    double scaling_factor = msg->data;
+
+    scaling_factor = std::max(0.0, scaling_factor);
+    scaling_factor = std::min(scaling_factor, 1.0);
+
+    std::vector<double> max_joint_acc;
+    if (node.getParamCached("aubo/max_joint_acceleration", max_joint_acc))
+    {
+      std::vector<double> joint_acc;
+      joint_acc.resize(max_joint_acc.size());
+
+      std::transform(max_joint_acc.begin(), max_joint_acc.end(), joint_acc.begin(), [scaling_factor](double value) { return scaling_factor * value; } );
+
+      set_max_joint_acceleration(joint_acc);
+    }
+  }
 
   /*
    * Establishing network connection with the manipulator sever */
-  bool login(std::string username = "AUBO", std::string password = "123456");
+  bool login(std::string host, int port = 8899, std::string username = "AUBO", std::string password = "123456");
   bool login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   /*
    * Disconnecting from the manipulator server */
   bool logout();
   bool logout(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
-
 
   /* Initializing the manipulator, including power on, release the brake, set up
    * the collision class, set up the kinematics parameters.
@@ -437,7 +446,7 @@ public:
    * When it is set to block mode, return value represents whether the interface
    * has been called successfully. */
 
-  bool robot_startup();
+  bool robot_startup(int collision_class = 6);
   bool robot_startup(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
   /*
@@ -451,7 +460,6 @@ public:
 
   bool init_profile();
   bool init_profile(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
-
 
   /*  */
   void get_max_joint_acceleration(std::vector<double> &result);       // Get the maximum acceleration of each joint.
@@ -473,6 +481,8 @@ public:
   void get_max_angular_velocity(double &result);      // Get the maximum angular velocity of end-effector movement.
   bool set_max_angular_velocity(double value);        // Set the maximum angular velocity of end-effector movement.
 
+  bool set_blend_radius(double value);                // Set the blend radius.
+  double get_blend_radius();                          // Get the blend radius.
 
 /* The manipulator moves to the target position through the joint movement
  * (Move Joint), the target position is described by the angle of each joint.
@@ -483,7 +493,6 @@ public:
 
   bool move_joint(const std::vector<double> &joint_pos);
 
-
 /* The manipulator moves to the target position through the linear movement
  * (Move Line), the target position is described by the angle of each joint.
  * The maximum linear velocity and the maximum linear acceleration should be set
@@ -493,11 +502,10 @@ public:
 
   bool move_line(const std::vector<double> &joint_pos);
 
-
 /* The track movement of the manipulator. This movement is belonged to different
  * movement type according to the different type of subMoveMode. */
 
-  void move_track(const control_msgs::JointTrajectoryGoal::ConstPtr &goal);
+  bool move_track(const trajectory_msgs::JointTrajectory &trajectory);
 
   /*
    * Control the movement by using control command */
@@ -517,7 +525,6 @@ public:
   /*
    * Get the waypoint information of the manipulator */
   void get_current_waypoint();
-
 
   /*
    * Get the diagnostic information of the manipulator */
@@ -552,11 +559,6 @@ public:
   bool register_event_info(RobotEventCallback event_cb, void *arg);
 
 
-  /*
-   * Define the function pointer for the waypoint information push */
-  void realtime_waypoint_cb(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg);
-
-
   /// The IO module ///
 
   /*
@@ -573,7 +575,6 @@ public:
 
   bool set_analog_output(int addr, double value);
   bool set_analog_output(std::string name, double value);
-
 
   bool get_digital_inputs(std::vector<bool> &digital_inputs);
   bool get_analog_inputs(std::vector<double> &analog_inputs);

@@ -1,0 +1,25 @@
+<package format="2">
+  <name>aubo_controller_manager</name>
+  <version>0.0.0</version>
+  <description>
+    The aubo_controller_manager package
+  </description>
+  <license>TODO</license>
+
+  <maintainer email="nicola@sysdesign.it">Nicola Conti</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <!-- -->
+  <depend>roscpp</depend>
+  <depend>xmlrpcpp</depend>
+  <depend>actionlib</depend>
+  <depend>pluginlib</depend>
+  <depend>moveit_core</depend>
+  <depend>control_msgs</depend>
+  <!-- -->
+  <depend>boost</depend>
+
+  <export>
+    <moveit_core plugin="${prefix}/aubo_controller_manager_plugin_description.xml"/>
+  </export>
+</package>

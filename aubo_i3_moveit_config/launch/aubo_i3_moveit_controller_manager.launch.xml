@@ -1,4 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-	<include file="$(find aubo_i3_moveit_config)/launch/aubo_i3_moveit_controller_manager.launch" />
+
+	<include file="$(find aubo_i3_moveit_config)/launch/aubo_i3_moveit_controller_manager.launch">
+		<arg name="moveit_controller_manager"
+			  value="aubo_controller_manager/AuboControllerManager"/>
+	</include>
+
 </launch>

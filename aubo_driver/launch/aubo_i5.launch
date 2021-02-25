@@ -1,0 +1,17 @@
+<launch>
+  <arg name="host" />
+  <arg name="port" default="8899" />
+  <arg name="debug" default="false" />
+
+  <env if="$(arg debug)"
+    name="ROSCONSOLE_CONFIG_FILE" value="$(find aubo_driver)/rosconsole.conf"/>
+
+  <node name="aubo_i5" pkg="aubo_driver" type="aubo_driver" output="screen">
+    <rosparam file="$(find aubo_driver)/config/joint_names.yaml"/>
+    <rosparam ns="aubo" file="$(find aubo_driver)/config/aubo.yaml"/>
+    <rosparam ns="login" file="$(find aubo_driver)/config/login.yaml"/>
+    <param name="tcp/host" value="$(arg host)"/>
+    <param name="tcp/port" value="$(arg port)"/>
+  </node>
+
+</launch>

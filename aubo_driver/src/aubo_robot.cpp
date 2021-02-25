@@ -3,32 +3,30 @@
 #include "aubo_driver/error_codes.h"
 
 
-bool aubo::AuboRobot::login(std::string username, std::string password)
+bool aubo::AuboRobot::login(std::string host, int port, std::string username, std::string password)
 {
   int error_code;
 
-  auto hostname = node.param<std::string>("tcp/hostname", "localhost");
-  auto port = node.param<int>("tcp/port", 8899);
-
-  error_code = service_interface.robotServiceLogin(hostname.c_str(), port, username.c_str(), password.c_str());
-  if (error_code != 0)
+  error_code = service_interface.robotServiceLogin(host.c_str(), port, username.c_str(), password.c_str());
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to login to %s:%d", hostname.c_str(), port);
     return false;
   }
 
-  ROS_INFO("Logged in to %s:%d", hostname.c_str(), port);
   return true;
 }
 
 
 bool aubo::AuboRobot::login(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
+  auto host = node.param<std::string>("tcp/host", "localhost");
+  auto port = node.param<int>("tcp/port", 8899);
+
   auto username = node.param<std::string>("login/username", "AUBO");
   auto password = node.param<std::string>("login/password", "123456");
 
-  if (login(username, password))
+  if (login(host, port, username, password))
   {
     res.success = true;
     res.message = "Logged in.";
@@ -48,7 +46,7 @@ bool aubo::AuboRobot::logout()
   int error_code;
 
   error_code = service_interface.robotServiceLogout();
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -75,32 +73,50 @@ bool aubo::AuboRobot::logout(std_srvs::TriggerRequest &req, std_srvs::TriggerRes
 }
 
 
-bool aubo::AuboRobot::robot_startup()
+bool aubo::AuboRobot::robot_startup(int collision_class)
 {
   int error_code;
 
+  XmlRpc::XmlRpcValue tool_dynamics;
+  if (!node.getParam("aubo/tool_dynamics", tool_dynamics))
+  {
+    std::string param_name = node.resolveName("aubo/tool_dynamics");
+    ROS_WARN("Failed to retrieve '%s' parameter.", param_name.c_str());
+    return false;
+  }
+
   aubo_robot_namespace::ToolDynamicsParam tool_dynamics_param;
-  tool_dynamics_param.positionX = 0.0;
-  tool_dynamics_param.positionY = 0.0;
-  tool_dynamics_param.positionZ = 0.0;
-  tool_dynamics_param.payload = 0.0;
-  tool_dynamics_param.toolInertia.xx = 0.0;
-  tool_dynamics_param.toolInertia.xy = 0.0;
-  tool_dynamics_param.toolInertia.xz = 0.0;
-  tool_dynamics_param.toolInertia.yy = 0.0;
-  tool_dynamics_param.toolInertia.yz = 0.0;
-  tool_dynamics_param.toolInertia.zz = 0.0;
+  try
+  {
+    tool_dynamics_param.positionX = tool_dynamics["position"]["x"];
+    tool_dynamics_param.positionY = tool_dynamics["position"]["y"];
+    tool_dynamics_param.positionZ = tool_dynamics["position"]["z"];
+    tool_dynamics_param.payload = tool_dynamics["payload"];
+    tool_dynamics_param.toolInertia.xx = tool_dynamics["inertia"]["xx"];
+    tool_dynamics_param.toolInertia.xy = tool_dynamics["inertia"]["xy"];
+    tool_dynamics_param.toolInertia.xz = tool_dynamics["inertia"]["xz"];
+    tool_dynamics_param.toolInertia.yy = tool_dynamics["inertia"]["yy"];
+    tool_dynamics_param.toolInertia.yz = tool_dynamics["inertia"]["yz"];
+    tool_dynamics_param.toolInertia.zz = tool_dynamics["inertia"]["zz"];
+  }
+  catch (const XmlRpc::XmlRpcException &ex)
+  {
+    auto code = ex.getCode();
+    auto message = ex.getMessage();
+    ROS_ERROR("Error %d, %s", code, message.c_str());
+    return false;
+  }
 
-  aubo_robot_namespace::ROBOT_SERVICE_STATE result;
+  aubo_robot_namespace::ROBOT_SERVICE_STATE robot_state;
 
-  error_code = service_interface.rootServiceRobotStartup(tool_dynamics_param, collision_class, true, true, 1000, result);
-  if (error_code != 0)
+  error_code = service_interface.rootServiceRobotStartup(tool_dynamics_param, collision_class, true, true, 1000, robot_state);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
   }
 
-  switch (result)
+  switch (robot_state)
   {
     case aubo_robot_namespace::ROBOT_SERVICE_STATE::ROBOT_SERVICE_READY:
       ROS_INFO("ROBOT SERVICE STATE: %s", "READY");
@@ -154,7 +170,7 @@ bool aubo::AuboRobot::robot_shutdown()
   int error_code;
 
   error_code = service_interface.robotServiceRobotShutdown();
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -186,7 +202,7 @@ bool aubo::AuboRobot::init_profile()
   int error_code;
 
   error_code = service_interface.robotServiceInitGlobalMoveProfile();
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -221,7 +237,7 @@ bool aubo::AuboRobot::set_max_joint_acceleration(const std::vector<double> &valu
   std::copy(value.begin(), value.end(), jointMaxAcc.jointPara);
 
   error_code = service_interface.robotServiceSetGlobalMoveJointMaxAcc(jointMaxAcc);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -249,7 +265,7 @@ bool aubo::AuboRobot::set_max_joint_velocity(const std::vector<double> &value)
   std::copy(value.begin(), value.end(), jointMaxVel.jointPara);
 
   error_code = service_interface.robotServiceSetGlobalMoveJointMaxVelc(jointMaxVel);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -274,7 +290,7 @@ bool aubo::AuboRobot::set_max_linear_acceleration(double value)
   int error_code;
 
   error_code = service_interface.robotServiceSetGlobalMoveEndMaxLineAcc(value);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -295,7 +311,7 @@ bool aubo::AuboRobot::set_max_linear_velocity(double value)
   int error_code;
 
   error_code = service_interface.robotServiceSetGlobalMoveEndMaxLineVelc(value);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -316,7 +332,7 @@ bool aubo::AuboRobot::set_max_angular_acceleration(double value)
   int error_code;
 
   error_code = service_interface.robotServiceSetGlobalMoveEndMaxAngleAcc(value);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -337,7 +353,7 @@ bool aubo::AuboRobot::set_max_angular_velocity(double value)
   int error_code;
 
   error_code = service_interface.robotServiceSetGlobalMoveEndMaxAngleVelc(value);
-  if (error_code != 0)
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
     return false;
@@ -350,6 +366,27 @@ bool aubo::AuboRobot::set_max_angular_velocity(double value)
 void aubo::AuboRobot::get_max_angular_velocity(double &result)
 {
   service_interface.robotServiceGetGlobalMoveEndMaxAngleVelc(result);
+}
+
+
+bool aubo::AuboRobot::set_blend_radius(double value)
+{
+  int error_code;
+
+  error_code = service_interface.robotServiceSetGlobalBlendRadius(value);
+  if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
+  {
+    ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
+    return false;
+  }
+
+  return true;
+}
+
+
+double aubo::AuboRobot::get_blend_radius()
+{
+  return service_interface.robotServiceGetGlobalBlendRadius();
 }
 
 
@@ -389,14 +426,13 @@ bool aubo::AuboRobot::move_line(const std::vector<double> &joint_pos)
 }
 
 
-void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstPtr &goal)
+bool aubo::AuboRobot::move_track(const trajectory_msgs::JointTrajectory &trajectory)
 {
   int error_code;
 
   // clear waypoints
   service_interface.robotServiceClearGlobalWayPointVector();
 
-  //
   int n_joints = joint_names.size();
 
   std::vector<double> j_pos_cmd;
@@ -408,13 +444,13 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
   j_acc_cmd.resize(n_joints);
 
   // add trajectory waypoints
-  for (const trajectory_msgs::JointTrajectoryPoint &trajectory_pt: goal->trajectory.points)
+  for (const trajectory_msgs::JointTrajectoryPoint &trajectory_pt: trajectory.points)
   {
     for (int i = 0; i < n_joints; i++)
     {
-      for (int j = 0; j < goal->trajectory.joint_names.size(); j++)
+      for (int j = 0; j < trajectory.joint_names.size(); j++)
       {
-        if (joint_names[i] == goal->trajectory.joint_names[j])
+        if (joint_names[i] == trajectory.joint_names[j])
         {
           j_pos_cmd[i] = trajectory_pt.positions[j];
           j_vel_cmd[i] = trajectory_pt.velocities[j];
@@ -428,8 +464,7 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
     {
       ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
       ROS_ERROR("Failed to add trajectory waypoint to robot controller.");
-      joint_trajectory_act.setAborted();
-      return;
+      return false;
     }
   }
 
@@ -439,13 +474,10 @@ void aubo::AuboRobot::move_track(const control_msgs::JointTrajectoryGoal::ConstP
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to execute trajectory.");
-    joint_trajectory_act.setAborted();
-    return;
+    return false;
   }
 
-  ROS_INFO("Trajectory executed succesfully.");
-  joint_trajectory_act.setSucceeded();
+  return true;
 }
 
 
@@ -457,12 +489,9 @@ bool aubo::AuboRobot::move_stop()
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to stop trajectory excution.");
     return false;
   }
 
-  // joint_trajectory_act.setAborted();
-  ROS_INFO("Trajectory execution stopped.");
   return true;
 }
 
@@ -492,12 +521,9 @@ bool aubo::AuboRobot::move_pause()
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to pause trajectory excution.");
     return false;
   }
 
-  // joint_trajectory_act.setAborted();
-  ROS_INFO("Trajectory execution paused.");
   return true;
 }
 
@@ -527,12 +553,9 @@ bool aubo::AuboRobot::move_resume()
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to continue trajectory excution.");
     return false;
   }
 
-  // joint_trajectory_act.setAborted();
-  ROS_INFO("Trajectory execution continue.");
   return true;
 }
 
@@ -599,84 +622,76 @@ void aubo::AuboRobot::get_current_waypoint()
 void aubo::AuboRobot::print_diagnostic_info()
 {
   int error_code;
-
   aubo_robot_namespace::RobotDiagnosis robotDiagnosis;
+
   error_code = service_interface.robotServiceGetRobotDiagnosisInfo(robotDiagnosis);
   if (error_code != aubo_robot_namespace::InterfaceCallSuccCode)
   {
     ROS_DEBUG("error_code: %d, %s", error_code, error_codes[error_code].c_str());
-    ROS_ERROR("Failed to get Robot Diagnostic Info.");
     return;
   }
 
-  ROS_INFO("AUBO Robot Diagnostic Info:");
+  robot_diagnostic.arm_power_status = robotDiagnosis.armPowerStatus;
+  robot_diagnostic.arm_power_current = robotDiagnosis.armPowerCurrent;
+  robot_diagnostic.arm_power_voltage = robotDiagnosis.armPowerVoltage;
+  robot_diagnostic.arm_canbus_status = robotDiagnosis.armCanbusStatus;
 
-  ROS_INFO_COND(robotDiagnosis.armCanbusStatus == 0x00, "\tArm CAN Bus Status: 0x%.2X ", robotDiagnosis.armCanbusStatus);
-  ROS_WARN_COND(robotDiagnosis.armCanbusStatus != 0x00, "\tArm CAN Bus Status: 0x%.2X ", robotDiagnosis.armCanbusStatus);
+  robot_diagnostic.remote_halt = robotDiagnosis.remoteHalt;
+  robot_diagnostic.soft_emergency = robotDiagnosis.softEmergency;
+  robot_diagnostic.remote_emergency = robotDiagnosis.remoteEmergency;
 
-  ROS_INFO("\tArm Power Current: %.1fA", robotDiagnosis.armPowerCurrent);
-  ROS_INFO("\tArm Power Voltage: %.1fV", robotDiagnosis.armPowerVoltage);
-  ROS_INFO("\tArm Power Status: %s", (robotDiagnosis.armPowerStatus) ? "On" : "Off");
+  robot_diagnostic.robot_collision = robotDiagnosis.robotCollision;
+  robot_diagnostic.static_collision = robotDiagnosis.staticCollisionDetect;
+  robot_diagnostic.joint_collision = robotDiagnosis.jointCollisionDetect;
 
-  ROS_INFO("\tController Temperature: %d°", robotDiagnosis.contorllerTemp);
-  ROS_INFO("\tController Humidity: %d%%", robotDiagnosis.contorllerHumidity);
+  robot_diagnostic.force_control_mode = robotDiagnosis.forceControlMode;
+  robot_diagnostic.brake_status = robotDiagnosis.brakeStuats;
+  robot_diagnostic.orpe_status = robotDiagnosis.orpeStatus;
 
-  ROS_INFO_COND(!robotDiagnosis.remoteHalt, "\tRemote Halt: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.remoteHalt, "\tRemote Halt: %s", "On");
+  robot_diagnostic.encoder_error = robotDiagnosis.encoderErrorStatus;
+  robot_diagnostic.encoder_lines_error = robotDiagnosis.encoderLinesError;
+  robot_diagnostic.joint_error = robotDiagnosis.jointErrorStatus;
+  robot_diagnostic.tool_io_error = robotDiagnosis.toolIoError;
 
-  ROS_INFO_COND(!robotDiagnosis.softEmergency, "\tSoft Emergency: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.softEmergency, "\tSoft Emergency: %s", "On");
+  robot_diagnostic.singularity_overspeed = robotDiagnosis.singularityOverSpeedAlarm;
+  robot_diagnostic.robot_overcurrent = robotDiagnosis.robotCurrentAlarm;
 
-  ROS_INFO_COND(!robotDiagnosis.remoteEmergency, "\tRemote Emergency: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.remoteEmergency, "\tRemote Emergency: %s", "On");
+  robot_diagnostic.robot_mounting_pose_warning = robotDiagnosis.robotMountingPoseWarning;
 
-  ROS_INFO_COND(!robotDiagnosis.robotCollision, "\tRobot Collision: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.robotCollision, "\tRobot Collision: %s", "On");
+  robot_diagnostic.can_buffer_size = robotDiagnosis.macTargetPosBufferSize;
+  robot_diagnostic.can_data_size = robotDiagnosis.macTargetPosDataSize;
+  robot_diagnostic.can_data_warning = robotDiagnosis.macDataInterruptWarning;
 
-  ROS_INFO_COND(!robotDiagnosis.forceControlMode, "\tForce Control Mode: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.forceControlMode, "\tForce Control Mode: %s", "On");
+  ROS_INFO("Arm Power Status: %s", (robot_diagnostic.arm_power_status) ? "ON" : "OFF");
+  ROS_INFO("Arm Power Current: %.1f", robot_diagnostic.arm_power_current);
+  ROS_INFO("Arm Power Voltage: %.1f", robot_diagnostic.arm_power_voltage);
+  ROS_ERROR_COND(robot_diagnostic.arm_canbus_status != 0x00, "Arm CAN bus Error: 0x%.2X", robot_diagnostic.arm_canbus_status);
 
-  ROS_INFO_COND(!robotDiagnosis.brakeStuats, "\tBrake Status: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.brakeStuats, "\tBrake Status: %s", "On");
+  ROS_WARN_COND(robot_diagnostic.remote_halt, "Remote Halt.");
+  ROS_ERROR_COND(robot_diagnostic.soft_emergency, "Soft Emergency!");
+  ROS_ERROR_COND(robot_diagnostic.remote_emergency, "Remote Emergency!");
 
-  ROS_INFO("\tRobot End Speed: %.1f [m/s]", robotDiagnosis.robotEndSpeed);
-  ROS_INFO("\tRobot Max Acceleration: %d [m/s^2]", robotDiagnosis.robotMaxAcc);
-  ROS_INFO("\tORPE (Software) Status: %s", (robotDiagnosis.orpeStatus) ? "On" : "Off");
-  ROS_INFO("\tEnable Read Pose: %s", (robotDiagnosis.enableReadPose) ? "On" : "Off");
-  ROS_INFO("\tRobot Mounting Pose Changed: %s", (robotDiagnosis.robotMountingPoseChanged) ? "On" : "Off");
+  ROS_ERROR_COND(robot_diagnostic.robot_collision, "Robot collision detected!");
+  ROS_ERROR_COND(robot_diagnostic.static_collision, "Static collision detected!");
+  ROS_ERROR_COND(robot_diagnostic.joint_collision != 0x00, "Joint collision: 0x%.2X", robot_diagnostic.joint_collision);
 
-  ROS_INFO_COND(!robotDiagnosis.encoderErrorStatus, "\tEncoder Error Status: %s", "Off");
-  ROS_ERROR_COND(robotDiagnosis.encoderErrorStatus, "\tEncoder Error Status: %s", "On");
+  ROS_INFO_COND(robot_diagnostic.force_control_mode, "Force Control mode enabled.");
+  ROS_WARN_COND(robot_diagnostic.brake_status, "Brake active.");
+  ROS_INFO_COND(robot_diagnostic.orpe_status, "ORPE active.");
 
-  ROS_INFO_COND(!robotDiagnosis.staticCollisionDetect, "\tStatic Collision Detect: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.staticCollisionDetect, "\tStatic Collision Detect: %s", "On");
+  ROS_FATAL_COND(robot_diagnostic.encoder_error, "Encoder Error!");
+  ROS_FATAL_COND(robot_diagnostic.encoder_lines_error, "Encoder Lines Error!");
+  ROS_FATAL_COND(robot_diagnostic.joint_error, "Joint Error!");
+  ROS_FATAL_COND(robot_diagnostic.tool_io_error, "Tool IO Error!");
 
-  ROS_INFO_COND(robotDiagnosis.jointCollisionDetect == 0x00, "\tJoint Collision Detect: 0x%.2x", robotDiagnosis.jointCollisionDetect);
-  ROS_WARN_COND(robotDiagnosis.jointCollisionDetect != 0x00, "\tJoint Collision Detect: 0x%.2x", robotDiagnosis.jointCollisionDetect);
+  ROS_ERROR_COND(robot_diagnostic.singularity_overspeed, "Singularity Overspeed!");
+  ROS_ERROR_COND(robot_diagnostic.robot_overcurrent, "Robot OverCurrent!");
 
-  ROS_INFO_COND(!robotDiagnosis.encoderLinesError, "\tEncoder Lines Error: %s", "Off");
-  ROS_ERROR_COND(robotDiagnosis.encoderLinesError, "\tEncoder Lines Error: %s", "On");
+  ROS_WARN_COND(robot_diagnostic.robot_mounting_pose_warning, "Mounting Pose Warning.");
 
-  ROS_INFO_COND(!robotDiagnosis.jointErrorStatus, "\tJoint Error Status: %s", "Off");
-  ROS_ERROR_COND(robotDiagnosis.jointErrorStatus, "\tJoint Error Status: %s", "On");
-
-  ROS_INFO_COND(!robotDiagnosis.singularityOverSpeedAlarm, "\tSingularity Overspeed Alarm: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.singularityOverSpeedAlarm, "\tSingularity Overspeed Alarm: %s", "On");
-
-  ROS_INFO_COND(!robotDiagnosis.robotCurrentAlarm, "\tRobot Current Alarm: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.robotCurrentAlarm, "\tRobot Current Alarm: %s", "On");
-
-  ROS_INFO_COND(!robotDiagnosis.toolIoError, "\tTool IO Error: %s", "Off");
-  ROS_ERROR_COND(robotDiagnosis.toolIoError, "\tTool IO Error: %s", "On");
-
-  ROS_INFO_COND(!robotDiagnosis.robotMountingPoseWarning, "\tRobot Mounting Pose Warning: %s", "Off");
-  ROS_WARN_COND(robotDiagnosis.robotMountingPoseWarning, "\tRobot Mounting Pose Warning: %s", "On");
-
-  ROS_INFO("\tMAC Target Pos Buffer Size: %d", robotDiagnosis.macTargetPosBufferSize);
-  ROS_INFO("\tMAC Target Pos Data Size: %d", robotDiagnosis.macTargetPosDataSize);
-
-  ROS_INFO_COND(robotDiagnosis.macDataInterruptWarning == 0x00, "\tMAC Data Interrupt Warning: 0x%.2x", robotDiagnosis.macDataInterruptWarning);
-  ROS_WARN_COND(robotDiagnosis.macDataInterruptWarning != 0x00, "\tMAC Data Interrupt Warning: 0x%.2x", robotDiagnosis.macDataInterruptWarning);
+  ROS_DEBUG("CAN buffer size: %d", robot_diagnostic.can_buffer_size);
+  ROS_DEBUG("CAN data size: %d", robot_diagnostic.can_data_size);
+  ROS_WARN_COND(robot_diagnostic.can_data_warning != 0x00, "CAN data Warining: %d", robot_diagnostic.can_data_warning);
 }
 
 
@@ -714,19 +729,6 @@ bool aubo::AuboRobot::register_event_info(RobotEventCallback event_cb, void *arg
   }
 
   return true;
-}
-
-
-void aubo::AuboRobot::realtime_waypoint_cb(const aubo_robot_namespace::wayPoint_S *wayPoint, void *arg)
-{
-  std::vector<double> joint_pos(aubo_robot_namespace::ARM_DOF);
-  std::copy(wayPoint->jointpos, wayPoint->jointpos + aubo_robot_namespace::ARM_DOF, joint_pos.begin());
-
-  sensor_msgs::JointState joint_state;
-  joint_state.header.stamp = ros::Time::now();
-  joint_state.name = joint_names;
-  joint_state.position = joint_pos;
-  joint_state_pub.publish(joint_state);
 }
 
 

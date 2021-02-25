@@ -11,16 +11,17 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   std_srvs
+  actionlib
+  actionlib_msgs
   geometry_msgs
   sensor_msgs
   trajectory_msgs
   control_msgs
-  actionlib
-  actionlib_msgs
+  diagnostic_msgs
 )
 
 ## System dependencies are found with CMake's conventions
-#find_package(python-numpy REQUIRED)
+find_package(Boost REQUIRED)
 
 ###################################
 ## catkin specific configuration ##
@@ -33,8 +34,18 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp std_msgs std_srvs geometry_msgs sensor_msgs trajectory_msgs
-    control_msgs actionlib actionlib_msgs
+  CATKIN_DEPENDS
+    roscpp
+    std_msgs
+    std_srvs
+    actionlib
+    actionlib_msgs
+    geometry_msgs
+    sensor_msgs
+    trajectory_msgs
+    control_msgs
+    diagnostic_msgs
+  DEPENDS Boost
 )
 
 ###########
@@ -47,7 +58,8 @@ include_directories(
   include
   include/lib
   include/lib/otg
-  ${catkin_INCLUDE_DIRS})
+  ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS})
 
 link_directories(
   lib/lib64
@@ -85,7 +97,7 @@ add_executable(aubo_driver src/driver_node.cpp src/aubo_robot.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(aubo_driver pthread libauborobotcontroller.so libotgLib.a
-  ${catkin_LIBRARIES})
+${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 #############
 ## Install ##

@@ -26,10 +26,10 @@
   </include>
 
   <!-- Trajectory Execution Functionality -->
-  <include ns="move_group" file="$(find aubo_i3_moveit_config)/launch/trajectory_execution.launch.xml" if="$(arg allow_trajectory_execution)">
+  <include if="$(arg allow_trajectory_execution)" ns="move_group" file="$(find aubo_i3_moveit_config)/launch/trajectory_execution.launch.xml">
     <arg name="moveit_manage_controllers" value="true" />
-    <arg name="moveit_controller_manager" value="aubo_i3" unless="$(arg fake_execution)"/>
-    <arg name="moveit_controller_manager" value="fake" if="$(arg fake_execution)"/>
+    <arg if="$(arg fake_execution)"     name="moveit_controller_manager" value="fake" />
+    <arg unless="$(arg fake_execution)" name="moveit_controller_manager" value="aubo_i3" />
   </include>
 
   <!-- Sensors Functionality -->
