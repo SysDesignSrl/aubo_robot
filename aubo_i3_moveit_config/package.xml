@@ -1,9 +1,9 @@
-<package>
-
+<package format="2">
   <name>aubo_i3_moveit_config</name>
   <version>1.3.3</version>
   <description>
-     An automatically generated package with all the configuration and launch files for using the aubo_i3 with the MoveIt! Motion Planning Framework
+     An automatically generated package with all the configuration and launch
+     files for using the aubo_i3 with the MoveIt! Motion Planning Framework
   </description>
   <author email="liug@our-robotics.com">Allen Liu</author>
   <maintainer email="liug@our-robotics.com">Allen Liu</maintainer>
@@ -16,15 +16,21 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <run_depend>moveit_ros_move_group</run_depend>
-  <run_depend>moveit_kinematics</run_depend>
-  <run_depend>moveit_planners_ompl</run_depend>
-  <run_depend>moveit_ros_visualization</run_depend>
-  <run_depend>joint_state_publisher</run_depend>
-  <run_depend>robot_state_publisher</run_depend>
-  <run_depend>xacro</run_depend>
-  <build_depend>aubo_description</build_depend>
-  <run_depend>aubo_description</run_depend>
+  <exec_depend>moveit_ros_move_group</exec_depend>
+  <exec_depend>moveit_fake_controller_manager</exec_depend>
+  <exec_depend>moveit_kinematics</exec_depend>
+  <exec_depend>moveit_planners_ompl</exec_depend>
+  <exec_depend>moveit_ros_visualization</exec_depend>
+  <exec_depend>moveit_setup_assistant</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>warehouse_ros_mongo</exec_depend>
+  <exec_depend>trac_ik_kinematics_plugin</exec_depend>
 
+  <exec_depend>aubo_description</exec_depend>
+  <exec_depend>aubo_controller_manager</exec_depend>
+  <!-- <exec_depend>aubo_kinematics</exec_depend> -->
+  <!-- <exec_depend>aubo_gazebo</exec_depend> -->
 
 </package>
