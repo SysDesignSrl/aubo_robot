@@ -1,5 +1,5 @@
-#ifndef AUBO_CONTROLLER_MANAGER
-#define AUBO_CONTROLLER_MANAGER
+#ifndef AUBO_CONTROLLER_MANAGER_H
+#define AUBO_CONTROLLER_MANAGER_H
 #include <string>
 #include <vector>
 #include <map>
@@ -13,10 +13,9 @@
 // moveit_core
 #include <moveit/controller_manager/controller_manager.h>
 #include <moveit/utils/xmlrpc_casts.h>
-// sensor_msgs
-#include <sensor_msgs/JointState.h>
 // aubo_controller_manager
 #include "aubo_controller_manager/joint_trajectory_controller_handle.h"
+#include "aubo_controller_manager/gripper_command_controller_handle.h"
 
 
 namespace aubo_controller_manager {
@@ -68,7 +67,7 @@ public:
 
         if (!moveit::core::isArray(controller_list[i]["joints"]))
         {
-          ROS_ERROR("Controller[%d] joints is not an array", i);
+          ROS_ERROR("Controller '%s': joints is not an array", name.c_str());
           continue;
         }
 
@@ -88,14 +87,27 @@ public:
         controllers_state[name] = state;
 
         // handle
-        auto controller_handle = std::make_shared<aubo_controller_manager::JointTrajectoryControllerHandle>(name, action_ns);
-        controllers[name] = controller_handle;
+        if (type == "JointTrajectory")
+        {
+          controllers[name] = std::make_shared<aubo_controller_manager::JointTrajectoryControllerHandle>(name, action_ns);
+        }
+        else if (type == "GripperCommand")
+        {
+          controllers[name] = std::make_shared<aubo_controller_manager::GripperCommandControllerHandle>(name, action_ns);
+        }
+        else
+        {
+          ROS_ERROR("Controller '%s': type '%s' not supported", name.c_str(), type.c_str());
+          continue;
+        }
 
-        ROS_INFO("Added controller: %s", name.c_str());
+        ROS_INFO("Controller Manager: added controller: %s", name.c_str());
       }
       catch (const XmlRpc::XmlRpcException &ex)
       {
-
+        const auto code = ex.getCode();
+        const auto message = ex.getMessage();
+        ROS_ERROR("Error while parsing controller information: %d, %s", code, message.c_str());
       }
     }
   }

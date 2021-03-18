@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   pluginlib
   moveit_core
+  moveit_msgs
+  trajectory_msgs
   control_msgs
 )
 
@@ -107,7 +109,15 @@ find_package(Boost REQUIRED COMPONENTS)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp xmlrpcpp actionlib pluginlib moveit_core control_msgs
+  CATKIN_DEPENDS
+    roscpp
+    xmlrpcpp
+    actionlib
+    pluginlib
+    moveit_core
+    moveit_msgs
+    trajectory_msgs
+    control_msgs
   DEPENDS Boost
 )
 

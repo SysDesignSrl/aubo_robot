@@ -155,6 +155,17 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
     return false;
   }
 
+  if (robot.enable_tcp_canbus_mode())
+  {
+    ROS_INFO("Enabled TCP 2 CANbus Mode.");
+  }
+  else
+  {
+    ROS_ERROR("Failed to enable TCP 2 CANbus Mode.");
+  }
+
+  start_control_loop();
+
   return true;
 }
 
@@ -178,6 +189,17 @@ bool aubo_hardware_interface::AuboHW::robot_startup(std_srvs::TriggerRequest &re
 
 bool aubo_hardware_interface::AuboHW::robot_shutdown()
 {
+  stop_control_loop();
+
+  if (robot.disable_tcp_canbus_mode())
+  {
+    ROS_INFO("Disabled TCP 2 CANbus Mode.");
+  }
+  else
+  {
+    ROS_ERROR("Failed to disable TCP 2 CANbus Mode.");
+  }
+
   if (robot.robot_shutdown())
   {
     ROS_INFO("Robot shutted down correctly.");

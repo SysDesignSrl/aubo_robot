@@ -7,7 +7,7 @@
     name="ROSCONSOLE_CONFIG_FILE" value="$(find aubo_driver)/rosconsole.conf"/>
 
   <node name="aubo_i10" pkg="aubo_driver" type="aubo_driver" output="screen">
-    <rosparam file="$(find aubo_driver)/config/joint_names.yaml"/>
+    <rosparam file="$(find aubo_driver)/config/joints.yaml"/>
     <rosparam ns="aubo" file="$(find aubo_driver)/config/aubo.yaml"/>
     <rosparam ns="login" file="$(find aubo_driver)/config/login.yaml"/>
     <param name="tcp/host" value="$(arg host)"/>

@@ -221,7 +221,7 @@ public:
     errno = pthread_create(&pthread, &pthread_attr, &control_loop, this);
     if (errno != 0)
     {
-      ROS_FATAL("pthread_create");
+      ROS_FATAL("pthread_create, errno: %d", errno);
       return false;
     }
 

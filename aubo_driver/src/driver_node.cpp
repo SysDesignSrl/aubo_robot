@@ -1,11 +1,12 @@
-// STL
 #include <sstream>
 #include <string>
 #include <vector>
 #include <algorithm>
-//
+// roscpp
 #include <ros/ros.h>
 #include <ros/console.h>
+// std_msgs
+#include <std_msgs/UInt16.h>
 // std_srvs
 #include <std_srvs/Trigger.h>
 // geometry_msgs
@@ -14,7 +15,7 @@
 #include <sensor_msgs/JointState.h>
 // diagnostic_msgs
 #include <diagnostic_msgs/DiagnosticArray.h>
-//
+// aubo_driver
 #include "aubo_driver/aubo_robot.h"
 // AUBO SDK
 #include "lib/AuboRobotMetaType.h"
@@ -90,9 +91,9 @@ int main(int argc, char* argv[])
   auto blend_radius = node.param<double>("aubo/blend_radius", 0.02);
 
   std::vector<std::string> joint_names;
-  if (!node.getParam("joint_names", joint_names))
+  if (!node.getParam("joints", joint_names))
   {
-    std::string param_name = node.resolveName("joint_names");
+    std::string param_name = node.resolveName("joints");
     ROS_ERROR("Failed to retrieve '%s' parameter.", param_name.c_str());
     return 1;
   }
@@ -116,6 +117,16 @@ int main(int argc, char* argv[])
   else
   {
     ROS_ERROR("Failed to login to %s:%d", host.c_str(), port);
+    return 1;
+  }
+
+  if (robot.init_robot())
+  {
+    ROS_INFO("Initialized robot parameters");
+  }
+  else
+  {
+    ROS_ERROR("Failed to initialize robot parameters");
     return 1;
   }
 
@@ -147,12 +158,14 @@ int main(int argc, char* argv[])
   auto print_diagnostic_srv = node.advertiseService("print_diagnostic_info", &aubo::AuboRobot::print_diagnostic_info, &robot);
 
   // Subscribed Topics
-  auto velocity_scaling = node.subscribe<std_msgs::Float64>("velocity_scaling", 10, &aubo::AuboRobot::velocity_scaling, &robot);
-  auto acceleration_scaling = node.subscribe<std_msgs::Float64>("acceleraion_scaling", 10, &aubo::AuboRobot::acceleration_scaling, &robot);
+  auto velocity_scaling_sub = node.subscribe<std_msgs::Float64>("velocity_scaling", 10, &aubo::AuboRobot::velocity_scaling_cb, &robot);
+  auto acceleration_scaling_sub = node.subscribe<std_msgs::Float64>("acceleration_scaling", 10, &aubo::AuboRobot::acceleration_scaling_cb, &robot);
+  auto digital_output_sub = node.subscribe<std_msgs::UInt16>("digital_output", 10, &aubo::AuboRobot::digital_output_cb, &robot);
 
   // Published Topics
   robot.joint_state_pub = node.advertise<sensor_msgs::JointState>("joint_states", 10);
   robot.tool_pose_pub = node.advertise<geometry_msgs::PoseStamped>("tool_pose", 10);
+  robot.digital_input_pub = node.advertise<std_msgs::UInt16>("digital_input", 10);
   robot.diagnostic_pub = node.advertise<diagnostic_msgs::DiagnosticArray>("diagnostic", 10);
 
   robot.register_realtime_waypoint(realtime_waypoint_cb, &robot);

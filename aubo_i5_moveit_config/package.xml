@@ -30,7 +30,7 @@
 
   <exec_depend>aubo_description</exec_depend>
   <exec_depend>aubo_controller_manager</exec_depend>
-  <!-- <exec_depend>aubo_kinematics</exec_depend> -->
+  <exec_depend>aubo_kinematics</exec_depend>
   <!-- <exec_depend>aubo_gazebo</exec_depend> -->
 
 </package>

@@ -81,41 +81,6 @@ private:
   } robot_diagnostic;
 
 
-  // Topics
-  ros::Publisher di_00_pub;
-  ros::Publisher di_01_pub;
-  ros::Publisher di_02_pub;
-  ros::Publisher di_03_pub;
-  ros::Publisher di_04_pub;
-  ros::Publisher di_05_pub;
-  ros::Publisher di_06_pub;
-  ros::Publisher di_07_pub;
-  ros::Publisher di_10_pub;
-  ros::Publisher di_11_pub;
-  ros::Publisher di_12_pub;
-  ros::Publisher di_13_pub;
-  ros::Publisher di_14_pub;
-  ros::Publisher di_15_pub;
-  ros::Publisher di_16_pub;
-  ros::Publisher di_17_pub;
-
-  ros::Subscriber do_00_sub;
-  ros::Subscriber do_01_sub;
-  ros::Subscriber do_02_sub;
-  ros::Subscriber do_03_sub;
-  ros::Subscriber do_04_sub;
-  ros::Subscriber do_05_sub;
-  ros::Subscriber do_06_sub;
-  ros::Subscriber do_07_sub;
-  ros::Subscriber do_10_sub;
-  ros::Subscriber do_11_sub;
-  ros::Subscriber do_12_sub;
-  ros::Subscriber do_13_sub;
-  ros::Subscriber do_14_sub;
-  ros::Subscriber do_15_sub;
-  ros::Subscriber do_16_sub;
-  ros::Subscriber do_17_sub;
-
   ros::Publisher ai_00_pub;
   ros::Publisher ai_01_pub;
   ros::Publisher ai_02_pub;
@@ -129,104 +94,86 @@ private:
 
   void refresh_cycle_cb(const ros::TimerEvent &ev)
   {
-    publish_digital_inputs();
-    publish_analog_inputs();
+    // publish_digital_inputs();
+    // publish_analog_inputs();
   }
 
 
-  void publish_digital_inputs()
-  {
-    bool val;
-    std_msgs::Bool msg;
-
-    get_digital_input("U_DI_00", val);
-    msg.data = val;
-    di_00_pub.publish(msg);
-    get_digital_input("U_DI_01", val);
-    msg.data = val;
-    di_01_pub.publish(msg);
-    get_digital_input("U_DI_02", val);
-    msg.data = val;
-    di_02_pub.publish(msg);
-    get_digital_input("U_DI_03", val);
-    msg.data = val;
-    di_03_pub.publish(msg);
-    get_digital_input("U_DI_04", val);
-    msg.data = val;
-    di_04_pub.publish(msg);
-    get_digital_input("U_DI_05", val);
-    msg.data = val;
-    di_05_pub.publish(msg);
-    get_digital_input("U_DI_06", val);
-    msg.data = val;
-    di_06_pub.publish(msg);
-    get_digital_input("U_DI_07", val);
-    msg.data = val;
-    di_07_pub.publish(msg);
-    get_digital_input("U_DI_10", val);
-    msg.data = val;
-    di_10_pub.publish(msg);
-    get_digital_input("U_DI_11", val);
-    msg.data = val;
-    di_11_pub.publish(msg);
-    get_digital_input("U_DI_12", val);
-    msg.data = val;
-    di_12_pub.publish(msg);
-    get_digital_input("U_DI_13", val);
-    msg.data = val;
-    di_13_pub.publish(msg);
-    get_digital_input("U_DI_14", val);
-    msg.data = val;
-    di_14_pub.publish(msg);
-    get_digital_input("U_DI_15", val);
-    msg.data = val;
-    di_15_pub.publish(msg);
-    get_digital_input("U_DI_16", val);
-    msg.data = val;
-    di_16_pub.publish(msg);
-    get_digital_input("U_DI_17", val);
-    msg.data = val;
-    di_17_pub.publish(msg);
-  }
-
-
-  void publish_analog_inputs()
-  {
-    double val;
-    std_msgs::Float64 msg;
-
-    get_analog_input("VI0", val);
-    msg.data = val;
-    ai_00_pub.publish(msg);
-    get_analog_input("VI1", val);
-    msg.data = val;
-    ai_01_pub.publish(msg);
-    get_analog_input("VI2", val);
-    msg.data = val;
-    ai_02_pub.publish(msg);
-    get_analog_input("VI3", val);
-    msg.data = val;
-    ai_03_pub.publish(msg);
-  }
-
-  // void do_00_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_00", msg->data); }
-  // void do_01_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_01", msg->data); }
-  // void do_02_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_02", msg->data); }
-  // void do_03_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_03", msg->data); }
-  // void do_04_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_04", msg->data); }
-  // void do_05_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_05", msg->data); }
-  // void do_06_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_06", msg->data); }
-  // void do_07_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_07", msg->data); }
-  // void do_10_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_10", msg->data); }
-  // void do_11_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_11", msg->data); }
-  // void do_12_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_12", msg->data); }
-  // void do_13_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_13", msg->data); }
-  // void do_14_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_14", msg->data); }
-  // void do_15_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_15", msg->data); }
-  // void do_16_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_16", msg->data); }
-  // void do_17_cb(const std_msgs::Bool::ConstPtr &msg) { set_digital_output("U_DO_17", msg->data); }
+  // void publish_digital_inputs()
+  // {
+  //   bool val;
+  //   std_msgs::Bool msg;
   //
+  //   get_digital_input("U_DI_00", val);
+  //   msg.data = val;
+  //   di_00_pub.publish(msg);
+  //   get_digital_input("U_DI_01", val);
+  //   msg.data = val;
+  //   di_01_pub.publish(msg);
+  //   get_digital_input("U_DI_02", val);
+  //   msg.data = val;
+  //   di_02_pub.publish(msg);
+  //   get_digital_input("U_DI_03", val);
+  //   msg.data = val;
+  //   di_03_pub.publish(msg);
+  //   get_digital_input("U_DI_04", val);
+  //   msg.data = val;
+  //   di_04_pub.publish(msg);
+  //   get_digital_input("U_DI_05", val);
+  //   msg.data = val;
+  //   di_05_pub.publish(msg);
+  //   get_digital_input("U_DI_06", val);
+  //   msg.data = val;
+  //   di_06_pub.publish(msg);
+  //   get_digital_input("U_DI_07", val);
+  //   msg.data = val;
+  //   di_07_pub.publish(msg);
+  //   get_digital_input("U_DI_10", val);
+  //   msg.data = val;
+  //   di_10_pub.publish(msg);
+  //   get_digital_input("U_DI_11", val);
+  //   msg.data = val;
+  //   di_11_pub.publish(msg);
+  //   get_digital_input("U_DI_12", val);
+  //   msg.data = val;
+  //   di_12_pub.publish(msg);
+  //   get_digital_input("U_DI_13", val);
+  //   msg.data = val;
+  //   di_13_pub.publish(msg);
+  //   get_digital_input("U_DI_14", val);
+  //   msg.data = val;
+  //   di_14_pub.publish(msg);
+  //   get_digital_input("U_DI_15", val);
+  //   msg.data = val;
+  //   di_15_pub.publish(msg);
+  //   get_digital_input("U_DI_16", val);
+  //   msg.data = val;
+  //   di_16_pub.publish(msg);
+  //   get_digital_input("U_DI_17", val);
+  //   msg.data = val;
+  //   di_17_pub.publish(msg);
+  // }
+
+
+  // void publish_analog_inputs()
+  // {
+  //   double val;
+  //   std_msgs::Float64 msg;
   //
+  //   get_analog_input("VI0", val);
+  //   msg.data = val;
+  //   ai_00_pub.publish(msg);
+  //   get_analog_input("VI1", val);
+  //   msg.data = val;
+  //   ai_01_pub.publish(msg);
+  //   get_analog_input("VI2", val);
+  //   msg.data = val;
+  //   ai_02_pub.publish(msg);
+  //   get_analog_input("VI3", val);
+  //   msg.data = val;
+  //   ai_03_pub.publish(msg);
+  // }
+
   // void ao_00_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO1", msg->data); }
   // void ao_01_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO2", msg->data); }
   // void ao_02_cb(const std_msgs::Float64::ConstPtr &msg) { set_analog_output("VO3", msg->data); }
@@ -236,6 +183,7 @@ public:
 
   ros::Publisher joint_state_pub;
   ros::Publisher tool_pose_pub;
+  ros::Publisher digital_input_pub;
   ros::Publisher diagnostic_pub;
 
   std::vector<std::string> joint_names;
@@ -244,6 +192,68 @@ public:
   AuboRobot(const ros::NodeHandle &node = ros::NodeHandle()) :
     node(node),
     joint_trajectory_asrv(node, "joint_trajectory", boost::bind(&aubo::AuboRobot::execute_trajectory, this, _1), false) { }
+
+
+  void velocity_scaling_cb(const std_msgs::Float64::ConstPtr &msg)
+  {
+    double scaling_factor = msg->data;
+
+    scaling_factor = std::max(0.0, scaling_factor);
+    scaling_factor = std::min(scaling_factor, 1.0);
+
+    std::vector<double> max_joint_vel;
+    if (node.getParamCached("aubo/max_joint_velocity", max_joint_vel))
+    {
+      std::vector<double> joint_vel;
+      joint_vel.resize(max_joint_vel.size());
+
+      std::transform(max_joint_vel.begin(), max_joint_vel.end(), joint_vel.begin(), [scaling_factor](double value) { return scaling_factor * value; } );
+
+      set_max_joint_velocity(joint_vel);
+    }
+  }
+
+
+  void acceleration_scaling_cb(const std_msgs::Float64::ConstPtr &msg)
+  {
+    double scaling_factor = msg->data;
+
+    scaling_factor = std::max(0.0, scaling_factor);
+    scaling_factor = std::min(scaling_factor, 1.0);
+
+    std::vector<double> max_joint_acc;
+    if (node.getParamCached("aubo/max_joint_acceleration", max_joint_acc))
+    {
+      std::vector<double> joint_acc;
+      joint_acc.resize(max_joint_acc.size());
+
+      std::transform(max_joint_acc.begin(), max_joint_acc.end(), joint_acc.begin(), [scaling_factor](double value) { return scaling_factor * value; } );
+
+      set_max_joint_acceleration(joint_acc);
+    }
+  }
+
+
+  void digital_output_cb(const std_msgs::UInt16::ConstPtr &msg)
+  {
+    ROS_DEBUG("Digital Outputs: 0x%.4X", msg->data);
+    set_digital_output("U_DO_00", (msg->data >> 0) & 0x01);
+    set_digital_output("U_DO_01", (msg->data >> 1) & 0x01);
+    set_digital_output("U_DO_02", (msg->data >> 2) & 0x01);
+    set_digital_output("U_DO_03", (msg->data >> 3) & 0x01);
+    set_digital_output("U_DO_04", (msg->data >> 4) & 0x01);
+    set_digital_output("U_DO_05", (msg->data >> 5) & 0x01);
+    set_digital_output("U_DO_06", (msg->data >> 6) & 0x01);
+    set_digital_output("U_DO_07", (msg->data >> 7) & 0x01);
+    set_digital_output("U_DO_10", (msg->data >> 8) & 0x01);
+    set_digital_output("U_DO_11", (msg->data >> 9) & 0x01);
+    set_digital_output("U_DO_12", (msg->data >> 10) & 0x01);
+    set_digital_output("U_DO_13", (msg->data >> 11) & 0x01);
+    set_digital_output("U_DO_14", (msg->data >> 12) & 0x01);
+    set_digital_output("U_DO_15", (msg->data >> 13) & 0x01);
+    set_digital_output("U_DO_16", (msg->data >> 14) & 0x01);
+    set_digital_output("U_DO_17", (msg->data >> 15) & 0x01);
+  }
 
 
   bool init(const std::vector<std::string> &joint_names)
@@ -301,16 +311,39 @@ public:
 
   bool init_robot()
   {
-    std::vector<double> max_joint_acc;
-    if (node.getParam("aubo/max_joint_acceleration", max_joint_acc))
+    // initialize movement profile
+    if (init_profile())
     {
-      set_max_joint_acceleration(max_joint_acc);
+      ROS_DEBUG("Initialized robot movement profile");
     }
+    else
+    {
+      ROS_ERROR("Failed to initialize robot movement profile");
+      return false;
+    }
+
+    // set joint parameters
     std::vector<double> max_joint_vel;
     if (node.getParam("aubo/max_joint_velocity", max_joint_vel))
     {
       set_max_joint_velocity(max_joint_vel);
     }
+    std::vector<double> max_joint_acc;
+    if (node.getParam("aubo/max_joint_acceleration", max_joint_acc))
+    {
+      set_max_joint_acceleration(max_joint_acc);
+    }
+
+    // get joint parameters
+    get_max_joint_velocity(max_joint_vel);
+    std::stringstream vss;
+    vss << "[ ";
+    for (double val : max_joint_vel)
+    {
+      vss << val << " ";
+    }
+    vss << "] ";
+    ROS_DEBUG_STREAM("max joint velocity: " << vss.str() << "[rad/s]");
 
     get_max_joint_acceleration(max_joint_acc);
     std::stringstream ass;
@@ -322,49 +355,48 @@ public:
     ass << "] ";
     ROS_DEBUG_STREAM("max joint acceleration: " << ass.str() << "[rad/s^2]");
 
-    get_max_joint_velocity(max_joint_vel);
-    std::stringstream vss;
-    vss << "[ ";
-    for (double val : max_joint_vel)
-    {
-      vss << val << " ";
-    }
-    vss << "] ";
-    ROS_DEBUG_STREAM("max joint velocity: " << vss.str() << "[rad/s]");
-
-
-    double max_linear_acc;
-    if (node.getParam("aubo/max_linear_acceleration", max_linear_acc))
-    {
-      set_max_linear_acceleration(max_linear_acc);
-    }
+    // set linear parameters
     double max_linear_vel;
     if (node.getParam("aubo/max_linear_velocity", max_linear_vel))
     {
       set_max_linear_velocity(max_linear_vel);
     }
-    double max_angular_acc;
-    if (node.getParam("aubo/max_angular_acceleration", max_angular_acc))
+    double max_linear_acc;
+    if (node.getParam("aubo/max_linear_acceleration", max_linear_acc))
     {
-      set_max_angular_acceleration(max_angular_acc);
+      set_max_linear_acceleration(max_linear_acc);
     }
     double max_angular_vel;
     if (node.getParam("aubo/max_angular_velocity", max_angular_vel))
     {
       set_max_angular_velocity(max_angular_vel);
     }
+    double max_angular_acc;
+    if (node.getParam("aubo/max_angular_acceleration", max_angular_acc))
+    {
+      set_max_angular_acceleration(max_angular_acc);
+    }
+
+    // get linear parameters
+    get_max_linear_velocity(max_linear_vel);
+    ROS_DEBUG("max linear velocity: %.2f [m/s]", max_linear_vel);
 
     get_max_linear_acceleration(max_linear_acc);
     ROS_DEBUG("max linear acceleration: %.2f [m/s^2]", max_linear_acc);
 
-    get_max_linear_velocity(max_linear_vel);
-    ROS_DEBUG("max linear velocity: %.2f [m/s]", max_linear_vel);
+    get_max_angular_velocity(max_angular_vel);
+    ROS_DEBUG("max angular velocity: %.2f [rad/s]", max_angular_vel);
 
     get_max_angular_acceleration(max_angular_acc);
     ROS_DEBUG("max angular acceleration: %.2f [rad/s^2]", max_angular_acc);
 
-    get_max_angular_velocity(max_angular_vel);
-    ROS_DEBUG("max angular velocity: %.2f [rad/s]", max_angular_vel);
+    // blend radius
+    double blend_radius;
+    if (node.getParam("aubo/blend_radius", blend_radius))
+    {
+      set_blend_radius(blend_radius);
+    }
+    ROS_DEBUG("blend_radius: %.2f [m]", get_blend_radius());
   }
 
 
@@ -386,45 +418,6 @@ public:
     {
       ROS_ERROR("Failed to execute trajectory.");
       joint_trajectory_asrv.setAborted();
-    }
-  }
-
-
-  void velocity_scaling(const std_msgs::Float64::ConstPtr &msg)
-  {
-    double scaling_factor = msg->data;
-
-    scaling_factor = std::max(0.0, scaling_factor);
-    scaling_factor = std::min(scaling_factor, 1.0);
-
-    std::vector<double> max_joint_vel;
-    if (node.getParamCached("aubo/max_joint_velocity", max_joint_vel))
-    {
-      std::vector<double> joint_vel;
-      joint_vel.resize(max_joint_vel.size());
-
-      std::transform(max_joint_vel.begin(), max_joint_vel.end(), joint_vel.begin(), [scaling_factor](double value) { return scaling_factor * value; } );
-
-      set_max_joint_velocity(joint_vel);
-    }
-  }
-
-  void acceleration_scaling(const std_msgs::Float64::ConstPtr &msg)
-  {
-    double scaling_factor = msg->data;
-
-    scaling_factor = std::max(0.0, scaling_factor);
-    scaling_factor = std::min(scaling_factor, 1.0);
-
-    std::vector<double> max_joint_acc;
-    if (node.getParamCached("aubo/max_joint_acceleration", max_joint_acc))
-    {
-      std::vector<double> joint_acc;
-      joint_acc.resize(max_joint_acc.size());
-
-      std::transform(max_joint_acc.begin(), max_joint_acc.end(), joint_acc.begin(), [scaling_factor](double value) { return scaling_factor * value; } );
-
-      set_max_joint_acceleration(joint_acc);
     }
   }
 

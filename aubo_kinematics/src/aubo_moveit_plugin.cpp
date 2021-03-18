@@ -18,7 +18,7 @@
 //register KDLKinematics as a KinematicsBase implementation
 CLASS_LOADER_REGISTER_CLASS(aubo_kinematics::AuboKinematicsPlugin, kinematics::KinematicsBase)
 
-#define Debug_INFO 1
+#define Debug_INFO 0
 
 namespace aubo_kinematics
 {

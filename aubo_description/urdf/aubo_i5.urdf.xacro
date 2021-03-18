@@ -2,12 +2,6 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:macro name="aubo_i5" params="prefix:=''
-    *shoulder_calibration
-    *upperArm_calibration
-    *foreArm_calibration
-    *wrist1_calibration
-    *wrist2_calibration
-    *wrist3_calibration
     *wrist3_limit">
 
     <link name="${prefix}base_link">
@@ -41,7 +35,6 @@
       <parent link="${prefix}base_link" />
       <child link="${prefix}shoulder_Link" />
       <axis xyz="0 0 1" />
-      <xacro:insert_block name="shoulder_calibration"/>
       <limit lower="-3.05" upper="3.05" velocity="2.62" effort="207.0"/>
     </joint>
 
@@ -76,7 +69,6 @@
       <parent link="${prefix}shoulder_Link" />
       <child link="${prefix}upperArm_Link" />
       <axis xyz="0 0 1" />
-      <xacro:insert_block name="upperArm_calibration"/>
       <limit lower="-3.05" upper="3.05" velocity="2.62" effort="207.0"/>
     </joint>
 
@@ -111,7 +103,6 @@
       <parent link="${prefix}upperArm_Link" />
       <child link="${prefix}foreArm_Link" />
       <axis xyz="0 0 1" />
-      <xacro:insert_block name="foreArm_calibration"/>
       <limit lower="-3.05" upper="3.05" velocity="2.62" effort="207.0"/>
     </joint>
 
@@ -146,7 +137,6 @@
       <parent link="${prefix}foreArm_Link" />
       <child link="${prefix}wrist1_Link" />
       <axis xyz="0 0 1" />
-      <xacro:insert_block name="wrist1_calibration"/>
       <limit lower="-3.05" upper="3.05" velocity="3.14" effort="34.0"/>
     </joint>
 
@@ -181,7 +171,6 @@
       <parent link="${prefix}wrist1_Link" />
       <child link="${prefix}wrist2_Link" />
       <axis xyz="0 0 1" />
-      <xacro:insert_block name="wrist2_calibration"/>
       <limit lower="-3.05" upper="3.05" velocity="3.14" effort="34.0"/>
     </joint>
 
@@ -216,7 +205,6 @@
       <parent link="${prefix}wrist2_Link" />
       <child link="${prefix}wrist3_Link" />
       <axis xyz="0 0 1" />
-      <xacro:insert_block name="wrist3_calibration"/>
       <xacro:insert_block name="wrist3_limit"/>
     </joint>
 
