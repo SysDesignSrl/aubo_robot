@@ -165,7 +165,6 @@ bool aubo_hardware_interface::AuboHW::robot_startup()
   }
 
   start_control_loop();
-
   return true;
 }
 

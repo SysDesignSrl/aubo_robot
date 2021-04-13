@@ -232,7 +232,6 @@ public:
       return false;
     }
 
-    ros_control = true;
     return true;
   }
 
@@ -253,7 +252,7 @@ public:
     if (!robot.read(joint_pos))
     {
       reset_controllers = true;
-      ROS_ERROR_THROTTLE(1.0, "Failed to read joint positions state from robot!");
+      ROS_ERROR_THROTTLE(2.0, "Failed to read joint positions state from robot!");
     }
 
     // apply offset
@@ -274,7 +273,7 @@ public:
     if (!robot.write(joint_pos))
     {
       reset_controllers = true;
-      ROS_ERROR_THROTTLE(1.0, "Failed to write joint positions command to robot!");
+      ROS_ERROR_THROTTLE(2.0, "Failed to write joint positions command to robot!");
     }
   }
 
@@ -294,6 +293,7 @@ inline void* control_loop(void* arg)
     return NULL;
   }
 
+  aubo_hw->ros_control = true;
   while (ros::ok() && aubo_hw->ros_control)
   {
     t_1 = t;
